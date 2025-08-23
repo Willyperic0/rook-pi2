@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev src/index.ts",
+    "dev": "ts-node-dev src/modules/auction/infraestructure/api/index.ts",
     "lint": "ts-standard",
-    "start": "node build/index.js",
+    "start": "node build/modules/auction/infraestructure/api/index.js",
     "tsc": "tsc"
   },
   "keywords": [],
@@ -14,11 +14,13 @@
   "description": "",
   "dependencies": {
     "@types/morgan": "^1.9.10",
+    "dotenv": "^17.2.1",
     "express": "5.1.0",
     "morgan": "1.10.1",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.3",
     "@types/node": "^24.2.1",
     "ts-node-dev": "^2.0.0",
