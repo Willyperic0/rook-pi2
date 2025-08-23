@@ -31,11 +31,18 @@ export class AuctionController {
   listAuctions = async (_: Request, res: Response): Promise<void> => {
   try {
     const auctions = await this.auctionService["auctions"].findByStatus("OPEN");
-    res.json(auctions.map(a => AuctionMapper.toDto(a)));
+
+    if (!auctions || auctions.length === 0) {
+      res.status(200).json({ message: "No hay subastas disponibles", data: [] });
+      return;
+    }
+
+    res.json({ data: auctions.map(a => AuctionMapper.toDto(a)) });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
   placeBid = async (req: Request, res: Response) => {
