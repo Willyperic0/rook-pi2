@@ -1,3 +1,4 @@
+// src/interfaces/http/controllers/ItemController.ts
 import { Request, Response } from "express";
 import { ItemService } from "../../../../inventory/domain/services/ItemService";
 
@@ -16,10 +17,17 @@ export class ItemController {
     }
   };
 
-  // Listar todos los items
-  listItems = async (_req: Request, res: Response): Promise<Response> => {
+  // Listar items (opcionalmente filtrados por usuario)
+  listItems = async (req: Request, res: Response): Promise<Response> => {
     try {
-      const items = await this.itemService.getAllItems(); // Necesitarás este método en el ItemService
+      const { userId } = req.query;
+
+      if (userId) {
+        const items = await this.itemService.getItemsByUserId(Number(userId));
+        return res.json(items);
+      }
+
+      const items = await this.itemService.getAllItems();
       return res.json(items);
     } catch (err: any) {
       return res.status(500).json({ error: err.message });

@@ -20,4 +20,5 @@ export class UserService {
     static addCredits(user: User, amount: number): void {
         user.credits += amount;
     }
+    
 }

@@ -9,6 +9,6 @@ export default function auctionRoutes(auctionController: AuctionController) {
   router.get("/:id", auctionController.getAuction);
   router.post("/:id/bid", auctionController.placeBid);
   router.post("/:id/buy", auctionController.buyNow);
-
+router.get("/:id/bids", auctionController.getBids);
   return router;
 }

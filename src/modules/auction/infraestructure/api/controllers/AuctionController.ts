@@ -16,7 +16,7 @@ export class AuctionController {
 
   getAuction = async (req: Request, res: Response): Promise<Response> => {
   try {
-    const auction = await this.auctionService["auctions"].findById(Number(req.params["id"]));
+    const auction = await this.auctionService.getAuctionById(Number(req.params["id"]));
     if (!auction) {
       return res.status(404).json({ error: "Auction not found" });
     }
@@ -28,9 +28,10 @@ export class AuctionController {
 
 
 
-  listAuctions = async (_: Request, res: Response): Promise<void> => {
+  
+listAuctions = async (_: Request, res: Response): Promise<void> => {
   try {
-    const auctions = await this.auctionService["auctions"].findByStatus("OPEN");
+    const auctions = await this.auctionService.listOpenAuctions();
 
     if (!auctions || auctions.length === 0) {
       res.status(200).json({ message: "No hay subastas disponibles", data: [] });
@@ -64,4 +65,19 @@ export class AuctionController {
       res.status(400).json({ error: error.message });
     }
   };
+  getBids = async (req: Request, res: Response) => {
+  try {
+    const auctionId = Number(req.params["id"]);
+    const auction = await this.auctionService.getAuctionById(auctionId);
+
+    if (!auction) {
+      return res.status(404).json({ error: "Auction not found" });
+    }
+
+    return res.json(auction.bids || []);
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 }

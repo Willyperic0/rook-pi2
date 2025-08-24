@@ -20,12 +20,11 @@ export class InMemoryAuctionRepository implements AuctionRepository {
 
   async updateStatus(id: number, status: AuctionStatus): Promise<void> {
     const auction = await this.findById(id);
-    if (auction) {
-      auction.status = status;
-    }
+    if (auction) auction.status = status;
   }
 
   async findByStatus(status: AuctionStatus): Promise<Auction[]> {
     return this.auctions.filter(a => a.status === status);
   }
 }
+
