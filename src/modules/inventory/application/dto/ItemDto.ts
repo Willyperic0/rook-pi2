@@ -1,12 +1,17 @@
-// DTO de un item individual
+// inventory/application/dto/ItemDTO.ts
+import type { ItemType, HeroType } from "../../domain/models/Item";
+
 export interface ItemDto {
   id: number;
-  userId: number;   // importante para saber de quién es el item
+  userId: number;
   name: string;
   description: string;
+  type: ItemType;
+  heroType?: HeroType | undefined; // 👈 IMPORTANTE
+  isAvailable: boolean;
+  imagen: string;
 }
 
-// DTO de respuesta: lista de items
 export interface UserItemsDto {
   userId: number;
   items: ItemDto[];

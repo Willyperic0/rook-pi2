@@ -8,6 +8,10 @@ export class ItemMapper {
       userId: item.userId,
       name: item.name,
       description: item.description,
+      type: item.type,
+      ...(item.heroType && { heroType: item.heroType }), // 👈 así no te fuerza undefined
+      isAvailable: item.isAvailable,
+      imagen: item.imagen,
     };
   }
 
@@ -17,6 +21,10 @@ export class ItemMapper {
       userId: dto.userId,
       name: dto.name,
       description: dto.description,
+      type: dto.type,
+      ...(dto.heroType && { heroType: dto.heroType }), // 👈 igual aquí
+      isAvailable: dto.isAvailable,
+      imagen: dto.imagen,
     };
   }
 
@@ -27,3 +35,4 @@ export class ItemMapper {
     };
   }
 }
+
