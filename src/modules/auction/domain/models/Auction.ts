@@ -20,7 +20,7 @@ export class Auction {
 
   placeBid(bid: Bid): boolean {
     if (this.status !== "OPEN") return false;
-    if (bid.amount <= this.currentPrice) return false;
+    if (bid.amount < this.currentPrice) return false;
 
     this.currentPrice = bid.amount;
     this.bids.push(bid);

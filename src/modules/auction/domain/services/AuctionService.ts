@@ -77,71 +77,69 @@ console.log("[AUCTION SERVICE] Item availability set to false");
   }
 
   // Pujar usando token
-  async placeBid(auctionId: number, token: string, amount: number): Promise<boolean> {
-    console.log("[AUCTION SERVICE] placeBid called with auctionId:", auctionId, "token:", token, "amount:", amount);
+  // Pujar usando token
+async placeBid(auctionId: number, token: string, amount: number): Promise<boolean> {
+  console.log("[AUCTION SERVICE] placeBid called with auctionId:", auctionId, "token:", token, "amount:", amount);
 
-    const auction = await this.auctions.findById(auctionId);
-    console.log("[AUCTION SERVICE] Auction fetched:", auction);
-    if (!auction) throw new Error("Auction not found");
+  const auction = await this.auctions.findById(auctionId);
+  if (!auction) throw new Error("Auction not found");
 
-    const user = await this.users.findByToken(token);
-    console.log("[AUCTION SERVICE] User fetched from token:", user);
-    if (!user) throw new Error("Usuario no encontrado");
-    if (user.credits < amount) throw new Error("Créditos insuficientes");
+  const user = await this.users.findByToken(token);
+  if (!user) throw new Error("Usuario no encontrado");
 
-    const bid: Bid = {
-      auctionId: auction.id,
-      id: Date.now(),
-      userId: Number(user.id),
-      amount,
-      createdAt: new Date(),
-    };
+  // 🔹 Validar que el creador no pueda pujar
+  if (Number(user.id) === auction.item.userId) throw new Error("El creador no puede pujar en su propia subasta");
+  // 🔹 Validar que la puja no supere o iguale el buyNowPrice
+  if (auction.buyNowPrice !== undefined && amount >= auction.buyNowPrice && auction.buyNowPrice !== 0) {
+    throw new Error("La puja iguala o supera el precio de compra rápida. Usa el botón de compra rápida");
+  }
+  if (user.credits < amount) throw new Error("Créditos insuficientes");
 
-    const success = auction.placeBid(bid);
-    console.log("[AUCTION SERVICE] Bid placed:", success);
+  const bid: Bid = {
+    auctionId: auction.id,
+    id: Date.now(),
+    userId: Number(user.id),
+    amount,
+    createdAt: new Date(),
+  };
 
-    if (success) {
-      await this.users.updateCredits(user.id, user.credits - amount);
-      console.log("[AUCTION SERVICE] User credits updated after bid");
+  const success = auction.placeBid(bid);
+  if (success) {
+    await this.users.updateCredits(user.id, user.credits - amount);
+    await this.auctions.save(auction);
 
-      await this.auctions.save(auction);
-      console.log("[AUCTION SERVICE] Auction saved after bid");
-
-      emitBidUpdate(auction.id, {
-        id: auction.id,
-        currentPrice: amount,
-        highestBid: { userId: Number(user.id), amount },
-        bidsCount: auction.bids.length,
-      });
-      console.log("[AUCTION SERVICE] Bid update emitted via socket");
-    }
-
-    return success;
+    emitBidUpdate(auction.id, {
+      id: auction.id,
+      currentPrice: amount,
+      highestBid: { userId: Number(user.id), amount },
+      bidsCount: auction.bids.length,
+    });
   }
 
-  // Compra rápida usando token
-  async buyNow(auctionId: number, token: string): Promise<boolean> {
+  console.log("[AUCTION SERVICE] Bid placed:", success);
+  return success;
+}
+
+// Compra rápida usando token
+async buyNow(auctionId: number, token: string): Promise<boolean> {
   console.log("[AUCTION SERVICE] buyNow called with auctionId:", auctionId, "token:", token);
 
   const auction = await this.auctions.findById(auctionId);
-  console.log("[AUCTION SERVICE] Auction fetched:", auction);
   if (!auction) throw new Error("Auction not found");
   if (auction.buyNowPrice === undefined) throw new Error("No tiene compra rápida");
 
   const user = await this.users.findByToken(token);
-  console.log("[AUCTION SERVICE] User fetched from token:", user);
   if (!user) throw new Error("Usuario no encontrado");
+
+  // 🔹 Validar que el creador no pueda usar buyNow
+  if (Number(user.id) === auction.item.userId) throw new Error("El creador no puede usar compra rápida en su propia subasta");
+
   if (user.credits < auction.buyNowPrice) throw new Error("Créditos insuficientes");
 
   const success = auction.buyNow(Number(user.id));
-  console.log("[AUCTION SERVICE] BuyNow success:", success);
-
   if (success) {
     await this.users.updateCredits(user.id, user.credits - auction.buyNowPrice);
-    console.log("[AUCTION SERVICE] User credits updated after buyNow");
-
     await this.auctions.save(auction);
-    console.log("[AUCTION SERVICE] Auction saved after buyNow");
 
     emitBuyNow(auction.id, {
       id: auction.id,
@@ -152,20 +150,18 @@ console.log("[AUCTION SERVICE] Item availability set to false");
           : undefined,
       buyNowPrice: auction.buyNowPrice,
     });
-    console.log("[AUCTION SERVICE] BuyNow emitted via socket");
 
-    // 🔹 Proteger finalizeAuction
     try {
       await this.finalizeAuction(auction.id, Number(user.id));
       console.log("[AUCTION SERVICE] Auction finalized after buyNow");
     } catch (err) {
       console.error("[AUCTION SERVICE] finalizeAuction failed:", err);
-      // no hacemos throw para que la compra rápida aún se considere exitosa
     }
   }
 
   return success;
 }
+
 
 
 
