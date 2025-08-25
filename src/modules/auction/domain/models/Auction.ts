@@ -47,4 +47,12 @@ export class Auction {
   getWinnerId(): number | undefined {
     return this.highestBidderId;
   }
+
+  getOwnerId(): number | undefined {
+    return this.item.userId;
+  }
+
+  getHighestBidderId(): number | undefined {
+    return this.highestBidderId;
+  }
 }

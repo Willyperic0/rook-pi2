@@ -5,7 +5,6 @@ import { CreateAuctionInputDTO, CreateAuctionOutputDto } from "../../application
 import { AuctionMapper } from "../../application/mappers/AuctionMapper";
 import { Bid } from "../../domain/models/Bid";
 import { HttpUserRepository } from "../../../user/domain/repositories/HttpUserRepository";
-
 // Sockets
 import { emitBidUpdate, emitBuyNow, emitNewAuction } from "../../infraestructure/sockets/auctionSocket";
 
@@ -90,7 +89,7 @@ async placeBid(auctionId: number, token: string, amount: number): Promise<boolea
   // 🔹 Validar que el creador no pueda pujar
   if (Number(user.id) === auction.item.userId) throw new Error("El creador no puede pujar en su propia subasta");
   // 🔹 Validar que la puja no supere o iguale el buyNowPrice
-  if (auction.buyNowPrice !== undefined && amount >= auction.buyNowPrice && auction.buyNowPrice !== 0) {
+  if (auction.buyNowPrice !== undefined && amount >= auction.buyNowPrice && auction.buyNowPrice !== 0 ) {
     throw new Error("La puja iguala o supera el precio de compra rápida. Usa el botón de compra rápida");
   }
   if (user.credits < amount) throw new Error("Créditos insuficientes");
@@ -257,7 +256,13 @@ async finalizeAuction(auctionId: number, winnerId?: number) {
   await this.auctions.save(auction);
   console.log("[AUCTION SERVICE] Auction closed and saved");
 }
+  async getPurchasedAuctions(userId: number): Promise<Auction[]> {
+    return this.auctions.findClosedByBuyer(userId);
+  }
 
+  async getSoldAuctions(userId: number): Promise<Auction[]> {
+    return this.auctions.findClosedBySeller(userId);
+  }
 
 
 

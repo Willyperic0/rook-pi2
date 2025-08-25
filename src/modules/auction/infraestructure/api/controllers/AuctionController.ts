@@ -102,5 +102,25 @@ export class AuctionController {
     return res.status(500).json({ error: err.message }); // <-- y return aquí
   }
 };
+  // Subastas compradas
+  getPurchasedAuctions = async (req: Request, res: Response) => {
+    try {
+      const userId = Number(req.params["userId"]);
+      const auctions = await this.auctionService.getPurchasedAuctions(userId);
+      return res.json({ data: auctions.map(a => AuctionMapper.toDto(a)) });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  };
 
+  // Subastas vendidas
+  getSoldAuctions = async (req: Request, res: Response) => {
+    try {
+      const userId = Number(req.params["userId"]);
+      const auctions = await this.auctionService.getSoldAuctions(userId);
+      return res.json({ data: auctions.map(a => AuctionMapper.toDto(a)) });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  };
 }

@@ -6,5 +6,7 @@ export interface AuctionRepository {
   save(auction: Auction): Promise<void>;
   updateStatus(id: number, status: AuctionStatus): Promise<void>;
   findByStatus(status: AuctionStatus): Promise<Auction[]>;
+  findClosedByBuyer(userId: number): Promise<Auction[]> ;
+  findClosedBySeller(userId: number): Promise<Auction[]>;
 }
 

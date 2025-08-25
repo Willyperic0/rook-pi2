@@ -26,5 +26,25 @@ export class InMemoryAuctionRepository implements AuctionRepository {
   async findByStatus(status: AuctionStatus): Promise<Auction[]> {
     return this.auctions.filter(a => a.status === status);
   }
+  // NUEVOS MÉTODOS
+  async findClosedByBuyer(userId: number): Promise<Auction[]> {
+  return this.auctions.filter(
+    a =>
+      (a.status === "CLOSED" || a.status === "closed") &&
+      a.getHighestBidderId() !== undefined &&
+      a.getHighestBidderId() === userId
+  );
+}
+
+async findClosedBySeller(userId: number): Promise<Auction[]> {
+  return this.auctions.filter(
+    a =>
+      (a.status === "CLOSED" || a.status === "closed") &&
+      a.getOwnerId() !== undefined &&
+      a.getOwnerId() === userId
+  );
+}
+
+
 }
 

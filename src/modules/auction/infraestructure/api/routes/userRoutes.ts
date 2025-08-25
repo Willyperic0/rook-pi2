@@ -1,9 +1,11 @@
+// src/interfaces/http/routes/UserRoutes.ts
 import { Router } from "express";
 import { UserController } from "../controllers/UserController";
 
 const router = Router();
 
-router.post("/", UserController.createUser);
-router.get("/:id", UserController.getUser);
-
-export default router;
+export default function userRoutes(userController: UserController) {
+  router.get("/:id", userController.getUser);
+  router.get("/me", userController.getCurrentUser);
+  return router;
+}

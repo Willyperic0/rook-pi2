@@ -19,7 +19,8 @@ import { ItemService } from "../../../inventory/domain/services/ItemService";
 
 // --- Users ---
 import { HttpUserRepository } from "../../../user/domain/repositories/HttpUserRepository";
-
+import { UserController } from "./controllers/UserController";
+import userRoutes from "./routes/UserRoutes";
 // --- Instancias de repositorios y servicios ---
 const userRepoForAuctions = new HttpUserRepository("http://localhost:4000"); // apunta al userServer
 const auctionRepo = new InMemoryAuctionRepository();
@@ -32,6 +33,8 @@ const itemRepo = new HttpItemRepository("http://localhost:3002");
 const itemService = new ItemService(itemRepo);
 const itemController = new ItemController(itemService);
 
+const userRepo = new HttpUserRepository("http://localhost:4000"); // apunta al userServer
+const userController = new UserController(userRepo);
 // --- Configuración Express ---
 const app = express();
 app.use((req, _res, next) => {
@@ -54,6 +57,8 @@ app.use(env.apiPrefix + "/auctions", auctionRoutes(auctionController));
 // --- Rutas de Items ---
 app.use(env.apiPrefix + "/items", itemRoutes(itemController));
 
+// --- Rutas de Users ---
+app.use(env.apiPrefix + "/users", userRoutes(userController));
 // --- Server HTTP + Sockets ---
 const server = http.createServer(app);
 
