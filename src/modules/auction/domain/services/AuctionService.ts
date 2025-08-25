@@ -28,11 +28,12 @@ export class AuctionService {
     console.log("[AUCTION SERVICE] Item fetched by ID:", item);
     if (!item) throw new Error("Item not found");
     if (item.userId !== Number(user.id)) throw new Error("El item no pertenece al usuario");
-
+    if (!item.isAvailable) throw new Error("El item no está disponible para subasta");
+    if (input.buyNowPrice !== undefined && input.buyNowPrice <=input.startingPrice)
+      throw new Error("El precio de compra rápida debe ser mayor al precio inicial");
     const creditCost = input.durationHours === 48 ? 3 : 1;
     console.log(`[AUCTION SERVICE] User credits: ${user.credits}, creditCost: ${creditCost}`);
     if (user.credits < creditCost) throw new Error("Créditos insuficientes");
-
     await this.users.updateCredits(user.id, user.credits - creditCost);
     console.log("[AUCTION SERVICE] User credits updated");
 
