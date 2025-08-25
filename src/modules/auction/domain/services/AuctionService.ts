@@ -197,8 +197,7 @@ async finalizeAuction(auctionId: number, winnerId?: number) {
   if (!item) throw new Error("Item not found");
 
   const creator = await this.users.findById(auction.item.userId.toString());
-if (!creator) throw new Error("Creator not found");
-
+  if (!creator) throw new Error("Creator not found");
 
   if (winnerId) {
     // Compra rápida o ganador ya definido
@@ -209,9 +208,20 @@ if (!creator) throw new Error("Creator not found");
     console.log(`[AUCTION SERVICE] Item ${item.name} transferred to user ${winnerId} and marked available`);
 
     // 🔹 Agregar créditos al creador de la subasta
-    
     if (!auction.buyNowPrice) throw new Error("buyNowPrice undefined for buyNow winner");
-await this.users.updateCredits(creator.id, creator.credits + auction.buyNowPrice);
+    await this.users.updateCredits(creator.id, creator.credits + auction.buyNowPrice);
+    console.log(`[AUCTION SERVICE] Creator ${creator.id} received ${auction.buyNowPrice} credits`);
+
+    // 🔹 Devolver créditos a los que ya habían pujado antes del buyNow
+    for (const bid of auction.bids) {
+      if (bid.userId !== winnerId) { // evitar devolver al ganador
+        const user = await this.users.findById(bid.userId.toString());
+        if (user) {
+          await this.users.updateCredits(user.id, user.credits + bid.amount);
+          console.log(`[AUCTION SERVICE] Returned ${bid.amount} credits to user ${user.id}`);
+        }
+      }
+    }
 
   } else {
     // Determinar el ganador por la puja más alta
@@ -229,10 +239,10 @@ await this.users.updateCredits(creator.id, creator.credits + auction.buyNowPrice
       await this.users.updateCredits(creator.id, creator.credits + winnerBid.amount);
       console.log(`[AUCTION SERVICE] Creator ${creator.id} received ${winnerBid.amount} credits`);
 
-      // Devolver créditos a pujadore perdedores
+      // Devolver créditos a perdedores
       const losers = sortedBids.slice(1);
       for (const bid of losers) {
-        const user = await this.users.findByToken(bid.userId.toString()); // o findById si existe
+        const user = await this.users.findById(bid.userId.toString());
         if (user) {
           await this.users.updateCredits(user.id, user.credits + bid.amount);
           console.log(`[AUCTION SERVICE] Returned ${bid.amount} credits to user ${user.id}`);
@@ -251,6 +261,7 @@ await this.users.updateCredits(creator.id, creator.credits + auction.buyNowPrice
   await this.auctions.save(auction);
   console.log("[AUCTION SERVICE] Auction closed and saved");
 }
+
 
 
 
