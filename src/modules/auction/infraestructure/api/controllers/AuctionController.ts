@@ -60,16 +60,21 @@ export class AuctionController {
 
   // Compra rápida usando token
   buyNow = async (req: Request, res: Response) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) throw new Error("Token no proporcionado");
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Token no proporcionado" });
 
-      const success = await this.auctionService.buyNow(Number(req.params["id"]), token);
-      res.json({ success });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  };
+  try {
+    const success = await this.auctionService.buyNow(Number(req.params["id"]), token);
+    if (!success) return res.status(400).json({ error: "No se pudo realizar la compra rápida" });
+
+    return res.status(200).json({ success: true, message: "Compra rápida realizada correctamente" });
+  } catch (err: any) {
+    if (err.message.includes("not found")) return res.status(404).json({ error: err.message });
+    if (err.message.includes("Créditos insuficientes")) return res.status(403).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 
   // Obtener pujas de una subasta
   getBids = async (req: Request, res: Response) => {

@@ -29,7 +29,7 @@ export class AuctionService {
     if (!item) throw new Error("Item not found");
     if (item.userId !== Number(user.id)) throw new Error("El item no pertenece al usuario");
     if (!item.isAvailable) throw new Error("El item no está disponible para subasta");
-    if (input.buyNowPrice !== undefined && input.buyNowPrice <=input.startingPrice && input.buyNowPrice!==0)
+    if (input.buyNowPrice !== undefined && input.buyNowPrice <=input.startingPrice && input.buyNowPrice !== 0)
       throw new Error("El precio de compra rápida debe ser mayor al precio inicial");
     const creditCost = input.durationHours === 48 ? 3 : 1;
     console.log(`[AUCTION SERVICE] User credits: ${user.credits}, creditCost: ${creditCost}`);
@@ -121,39 +121,53 @@ console.log("[AUCTION SERVICE] Item availability set to false");
 
   // Compra rápida usando token
   async buyNow(auctionId: number, token: string): Promise<boolean> {
-    console.log("[AUCTION SERVICE] buyNow called with auctionId:", auctionId, "token:", token);
+  console.log("[AUCTION SERVICE] buyNow called with auctionId:", auctionId, "token:", token);
 
-    const auction = await this.auctions.findById(auctionId);
-    console.log("[AUCTION SERVICE] Auction fetched:", auction);
-    if (!auction) throw new Error("Auction not found");
-    if (auction.buyNowPrice === undefined) throw new Error("No tiene compra rápida");
+  const auction = await this.auctions.findById(auctionId);
+  console.log("[AUCTION SERVICE] Auction fetched:", auction);
+  if (!auction) throw new Error("Auction not found");
+  if (auction.buyNowPrice === undefined) throw new Error("No tiene compra rápida");
 
-    const user = await this.users.findByToken(token);
-    console.log("[AUCTION SERVICE] User fetched from token:", user);
-    if (!user) throw new Error("Usuario no encontrado");
-    if (user.credits < auction.buyNowPrice) throw new Error("Créditos insuficientes");
+  const user = await this.users.findByToken(token);
+  console.log("[AUCTION SERVICE] User fetched from token:", user);
+  if (!user) throw new Error("Usuario no encontrado");
+  if (user.credits < auction.buyNowPrice) throw new Error("Créditos insuficientes");
 
-    const success = auction.buyNow(Number(user.id));
-    console.log("[AUCTION SERVICE] BuyNow success:", success);
+  const success = auction.buyNow(Number(user.id));
+  console.log("[AUCTION SERVICE] BuyNow success:", success);
 
-    if (success) {
-      await this.users.updateCredits(user.id, user.credits - auction.buyNowPrice);
-      console.log("[AUCTION SERVICE] User credits updated after buyNow");
+  if (success) {
+    await this.users.updateCredits(user.id, user.credits - auction.buyNowPrice);
+    console.log("[AUCTION SERVICE] User credits updated after buyNow");
 
-      await this.auctions.save(auction);
-      console.log("[AUCTION SERVICE] Auction saved after buyNow");
+    await this.auctions.save(auction);
+    console.log("[AUCTION SERVICE] Auction saved after buyNow");
 
-      emitBuyNow(auction.id, {
-        id: auction.id,
-        status: "CLOSED",
-        highestBid: auction.bids.length > 0 ? auction.bids.reduce((max, b) => (b.amount > max.amount ? b : max)) : undefined,
-        buyNowPrice: auction.buyNowPrice,
-      });
-      console.log("[AUCTION SERVICE] BuyNow emitted via socket");
+    emitBuyNow(auction.id, {
+      id: auction.id,
+      status: "CLOSED",
+      highestBid:
+        auction.bids.length > 0
+          ? auction.bids.reduce((max, b) => (b.amount > max.amount ? b : max))
+          : undefined,
+      buyNowPrice: auction.buyNowPrice,
+    });
+    console.log("[AUCTION SERVICE] BuyNow emitted via socket");
+
+    // 🔹 Proteger finalizeAuction
+    try {
+      await this.finalizeAuction(auction.id, Number(user.id));
+      console.log("[AUCTION SERVICE] Auction finalized after buyNow");
+    } catch (err) {
+      console.error("[AUCTION SERVICE] finalizeAuction failed:", err);
+      // no hacemos throw para que la compra rápida aún se considere exitosa
     }
-
-    return success;
   }
+
+  return success;
+}
+
+
 
   async getAuctionById(id: number) {
     console.log("[AUCTION SERVICE] getAuctionById called with id:", id);
@@ -173,34 +187,35 @@ console.log("[AUCTION SERVICE] Item availability set to false");
     return user;
   }
   // Finalizar subasta
-async finalizeAuction(auctionId: number) {
-  console.log("[AUCTION SERVICE] finalizeAuction called with auctionId:", auctionId);
+async finalizeAuction(auctionId: number, winnerId?: number) {
+  console.log("[AUCTION SERVICE] finalizeAuction called with auctionId:", auctionId, "winnerId:", winnerId);
 
   const auction = await this.auctions.findById(auctionId);
   if (!auction) throw new Error("Auction not found");
 
-  // Determinar el ganador por la puja más alta
-  const winnerBid = auction.bids.sort((a, b) => b.amount - a.amount)[0];
+  const item = await this.items.findById(auction.item.id);
+  if (!item) throw new Error("Item not found");
 
-  if (winnerBid) {
-    console.log("[AUCTION SERVICE] Winner found:", winnerBid.userId, "amount:", winnerBid.amount);
-
-    const item = await this.items.findById(auction.item.id);
-    if (!item) throw new Error("Item not found");
-
-    // Transferir propiedad al ganador y volver disponible
-    item.userId = winnerBid.userId;
+  if (winnerId) {
+    // Compra rápida o ganador ya definido
+    item.userId = winnerId;
     item.isAvailable = true;
-    await this.items.updateItem(item.id, { userId: winnerBid.userId, isAvailable: true });
-
-    console.log(`[AUCTION SERVICE] Item ${item.name} transferido a usuario ${winnerBid.userId} y disponible`);
+    await this.items.updateItem(item.id, { userId: winnerId, isAvailable: true });
+    console.log(`[AUCTION SERVICE] Item ${item.name} transferred to user ${winnerId} and marked available`);
   } else {
-    // Si no hubo pujas, simplemente liberamos el item
-    const item = await this.items.findById(auction.item.id);
-    if (item) {
+    // Determinar el ganador por la puja más alta
+    const winnerBid = auction.bids.sort((a, b) => b.amount - a.amount)[0];
+
+    if (winnerBid) {
+      item.userId = winnerBid.userId;
+      item.isAvailable = true;
+      await this.items.updateItem(item.id, { userId: winnerBid.userId, isAvailable: true });
+      console.log(`[AUCTION SERVICE] Item ${item.name} transferred to user ${winnerBid.userId} and marked available`);
+    } else {
+      // No hubo pujas, liberamos el item
       item.isAvailable = true;
       await this.items.updateItem(item.id, { isAvailable: true });
-      console.log(`[AUCTION SERVICE] Item ${item.name} liberado sin ganador`);
+      console.log(`[AUCTION SERVICE] Item ${item.name} released without winner`);
     }
   }
 
@@ -209,6 +224,7 @@ async finalizeAuction(auctionId: number) {
   await this.auctions.save(auction);
   console.log("[AUCTION SERVICE] Auction closed and saved");
 }
+
 
 }
 
