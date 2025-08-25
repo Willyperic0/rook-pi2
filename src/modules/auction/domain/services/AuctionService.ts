@@ -196,21 +196,48 @@ async finalizeAuction(auctionId: number, winnerId?: number) {
   const item = await this.items.findById(auction.item.id);
   if (!item) throw new Error("Item not found");
 
+  const creator = await this.users.findById(auction.item.userId.toString());
+if (!creator) throw new Error("Creator not found");
+
+
   if (winnerId) {
     // Compra rápida o ganador ya definido
     item.userId = winnerId;
     item.isAvailable = true;
+
     await this.items.updateItem(item.id, { userId: winnerId, isAvailable: true });
     console.log(`[AUCTION SERVICE] Item ${item.name} transferred to user ${winnerId} and marked available`);
+
+    // 🔹 Agregar créditos al creador de la subasta
+    
+    if (!auction.buyNowPrice) throw new Error("buyNowPrice undefined for buyNow winner");
+await this.users.updateCredits(creator.id, creator.credits + auction.buyNowPrice);
+
   } else {
     // Determinar el ganador por la puja más alta
-    const winnerBid = auction.bids.sort((a, b) => b.amount - a.amount)[0];
+    const sortedBids = auction.bids.sort((a, b) => b.amount - a.amount);
+    const winnerBid = sortedBids[0];
 
     if (winnerBid) {
+      // Transferir item al ganador
       item.userId = winnerBid.userId;
       item.isAvailable = true;
       await this.items.updateItem(item.id, { userId: winnerBid.userId, isAvailable: true });
       console.log(`[AUCTION SERVICE] Item ${item.name} transferred to user ${winnerBid.userId} and marked available`);
+
+      // Pagarle al creador
+      await this.users.updateCredits(creator.id, creator.credits + winnerBid.amount);
+      console.log(`[AUCTION SERVICE] Creator ${creator.id} received ${winnerBid.amount} credits`);
+
+      // Devolver créditos a pujadore perdedores
+      const losers = sortedBids.slice(1);
+      for (const bid of losers) {
+        const user = await this.users.findByToken(bid.userId.toString()); // o findById si existe
+        if (user) {
+          await this.users.updateCredits(user.id, user.credits + bid.amount);
+          console.log(`[AUCTION SERVICE] Returned ${bid.amount} credits to user ${user.id}`);
+        }
+      }
     } else {
       // No hubo pujas, liberamos el item
       item.isAvailable = true;
@@ -224,6 +251,7 @@ async finalizeAuction(auctionId: number, winnerId?: number) {
   await this.auctions.save(auction);
   console.log("[AUCTION SERVICE] Auction closed and saved");
 }
+
 
 
 }
