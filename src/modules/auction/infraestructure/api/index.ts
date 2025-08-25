@@ -34,6 +34,10 @@ const itemController = new ItemController(itemService);
 
 // --- Configuración Express ---
 const app = express();
+app.use((req, _res, next) => {
+  console.log("[DEBUG] Method:", req.method, "URL:", req.url);
+  next();
+});
 
 // Habilitar CORS
 app.use(cors({

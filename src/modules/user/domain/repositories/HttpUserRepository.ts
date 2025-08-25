@@ -1,5 +1,5 @@
 import { User } from "../../domain/models/User";
-
+import axios from "axios";
 export class HttpUserRepository {
   constructor(private readonly baseUrl: string) {}
 
@@ -20,4 +20,19 @@ export class HttpUserRepository {
     const data = await res.json();
     return new User(data.id, data.username, data.email, data.credits, data.isActive);
   }
+
+  async findByToken(token: string): Promise<User | null> {
+    try {
+      const res = await axios.get(`${this.baseUrl}/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.data) return null;
+      const data = res.data;
+      return new User(data.id, data.username, data.email, data.credits, data.isActive);
+    } catch {
+      return null;
+    }
+  }
+
+
 }

@@ -31,17 +31,15 @@ export function initAuctionSocket(server: HttpServer) {
 
     // Crear subasta
     socket.on("CREATE_AUCTION", async (data, callback) => {
-      console.log("[SOCKET] CREATE_AUCTION recibido:", data);
-      try {
-        if (!auctionService) throw new Error("AuctionService no configurado");
-        const result = await auctionService.createAuction(data);
-        callback?.({ success: true, auction: result.auction });
-        emitNewAuction(result.auction); // a todos
-      } catch (err: any) {
-        console.error("[SOCKET] Error CREATE_AUCTION:", err.message);
-        callback?.({ success: false, error: err.message });
-      }
-    });
+  try {
+    if (!auctionService) throw new Error("AuctionService no configurado");
+    const result = await auctionService.createAuction(data, data.token);
+    callback?.({ success: true, auction: result.auction });
+  } catch (err: any) {
+    callback?.({ success: false, error: err.message });
+  }
+});
+
 
     // Pujar en subasta
     socket.on("PLACE_BID", async (data, callback) => {

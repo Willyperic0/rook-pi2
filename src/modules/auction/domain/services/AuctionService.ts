@@ -16,19 +16,36 @@ export class AuctionService {
     private readonly users: HttpUserRepository,
   ) {}
 
-  // Crear subasta
-  async createAuction(input: CreateAuctionInputDTO): Promise<CreateAuctionOutputDto> {
-    const item = await this.items.findById(input.itemId);
-    if (!item) throw new Error("Item not found");
-    if (item.userId !== input.userId) throw new Error("El item no pertenece al usuario");
+  // Crear subasta usando token
+  async createAuction(input: CreateAuctionInputDTO, token: string): Promise<CreateAuctionOutputDto> {
+    console.log("[AUCTION SERVICE] createAuction called with input:", input, "token:", token);
 
-    const user = await this.users.findById(input.userId.toString());
+    const user = await this.users.findByToken(token);
+    console.log("[AUCTION SERVICE] User fetched from token:", user);
     if (!user) throw new Error("Usuario no encontrado");
 
+    const item = await this.items.findById(input.itemId);
+    console.log("[AUCTION SERVICE] Item fetched by ID:", item);
+    if (!item) throw new Error("Item not found");
+    if (item.userId !== Number(user.id)) throw new Error("El item no pertenece al usuario");
+
     const creditCost = input.durationHours === 48 ? 3 : 1;
+    console.log(`[AUCTION SERVICE] User credits: ${user.credits}, creditCost: ${creditCost}`);
     if (user.credits < creditCost) throw new Error("Créditos insuficientes");
 
     await this.users.updateCredits(user.id, user.credits - creditCost);
+    console.log("[AUCTION SERVICE] User credits updated");
+
+    try {
+  // Por algo como:
+item.isAvailable = false;
+await this.items.updateAvailability(item.id, false);
+console.log("[AUCTION SERVICE] Item availability set to false");
+} catch (err) {
+  console.error("[AUCTION SERVICE] Failed to update item availability:", err);
+  throw err;
+}
+
 
     const auction = new Auction(
       Date.now(),
@@ -44,83 +61,116 @@ export class AuctionService {
       undefined,
     );
 
-    await this.auctions.save(auction);
+    try {
+  await this.auctions.save(auction);
+  console.log("[AUCTION SERVICE] Auction saved:", auction);
 
-    // 🔹 Emitir nueva subasta
-    emitNewAuction(AuctionMapper.toDto(auction, input.durationHours));
+  emitNewAuction(AuctionMapper.toDto(auction, input.durationHours));
+  console.log("[AUCTION SERVICE] New auction emitted via socket");
+} catch (err) {
+  console.error("[AUCTION SERVICE] Error saving or emitting auction:", err);
+}
+
 
     return { auction: AuctionMapper.toDto(auction, input.durationHours) };
   }
 
-  // Pujar en subasta
-  async placeBid(auctionId: number, userId: number, amount: number): Promise<boolean> {
+  // Pujar usando token
+  async placeBid(auctionId: number, token: string, amount: number): Promise<boolean> {
+    console.log("[AUCTION SERVICE] placeBid called with auctionId:", auctionId, "token:", token, "amount:", amount);
+
     const auction = await this.auctions.findById(auctionId);
+    console.log("[AUCTION SERVICE] Auction fetched:", auction);
     if (!auction) throw new Error("Auction not found");
 
-    const user = await this.users.findById(userId.toString());
+    const user = await this.users.findByToken(token);
+    console.log("[AUCTION SERVICE] User fetched from token:", user);
     if (!user) throw new Error("Usuario no encontrado");
-
     if (user.credits < amount) throw new Error("Créditos insuficientes");
 
     const bid: Bid = {
       auctionId: auction.id,
       id: Date.now(),
-      userId,
+      userId: Number(user.id),
       amount,
       createdAt: new Date(),
     };
 
     const success = auction.placeBid(bid);
+    console.log("[AUCTION SERVICE] Bid placed:", success);
 
     if (success) {
       await this.users.updateCredits(user.id, user.credits - amount);
-      await this.auctions.save(auction);
+      console.log("[AUCTION SERVICE] User credits updated after bid");
 
-      // 🔹 Emitir actualización de puja
+      await this.auctions.save(auction);
+      console.log("[AUCTION SERVICE] Auction saved after bid");
+
       emitBidUpdate(auction.id, {
         id: auction.id,
         currentPrice: amount,
-        highestBid: { userId, amount },
+        highestBid: { userId: Number(user.id), amount },
         bidsCount: auction.bids.length,
       });
+      console.log("[AUCTION SERVICE] Bid update emitted via socket");
     }
 
     return success;
   }
 
-  // Compra rápida
-  async buyNow(auctionId: number, userId: number): Promise<boolean> {
+  // Compra rápida usando token
+  async buyNow(auctionId: number, token: string): Promise<boolean> {
+    console.log("[AUCTION SERVICE] buyNow called with auctionId:", auctionId, "token:", token);
+
     const auction = await this.auctions.findById(auctionId);
+    console.log("[AUCTION SERVICE] Auction fetched:", auction);
     if (!auction) throw new Error("Auction not found");
     if (auction.buyNowPrice === undefined) throw new Error("No tiene compra rápida");
 
-    const user = await this.users.findById(userId.toString());
+    const user = await this.users.findByToken(token);
+    console.log("[AUCTION SERVICE] User fetched from token:", user);
     if (!user) throw new Error("Usuario no encontrado");
     if (user.credits < auction.buyNowPrice) throw new Error("Créditos insuficientes");
 
-    const success = auction.buyNow(userId);
+    const success = auction.buyNow(Number(user.id));
+    console.log("[AUCTION SERVICE] BuyNow success:", success);
 
     if (success) {
       await this.users.updateCredits(user.id, user.credits - auction.buyNowPrice);
-      await this.auctions.save(auction);
+      console.log("[AUCTION SERVICE] User credits updated after buyNow");
 
-      // Emitir cierre de subasta con la información más actual
+      await this.auctions.save(auction);
+      console.log("[AUCTION SERVICE] Auction saved after buyNow");
+
       emitBuyNow(auction.id, {
         id: auction.id,
         status: "CLOSED",
         highestBid: auction.bids.length > 0 ? auction.bids.reduce((max, b) => (b.amount > max.amount ? b : max)) : undefined,
         buyNowPrice: auction.buyNowPrice,
       });
+      console.log("[AUCTION SERVICE] BuyNow emitted via socket");
     }
 
     return success;
   }
 
   async getAuctionById(id: number) {
+    console.log("[AUCTION SERVICE] getAuctionById called with id:", id);
     return this.auctions.findById(id);
   }
 
   async listOpenAuctions() {
+    console.log("[AUCTION SERVICE] listOpenAuctions called");
     return this.auctions.findByStatus("OPEN");
   }
+
+  async getCurrentUser(token: string) {
+    console.log("[AUCTION SERVICE] getCurrentUser called with token:", token);
+    const user = await this.users.findByToken(token);
+    console.log("[AUCTION SERVICE] User fetched:", user);
+    if (!user) throw new Error("Usuario no encontrado");
+    return user;
+  }
 }
+
+
