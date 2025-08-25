@@ -44,18 +44,30 @@ export class InMemoryItemRepository implements ItemRepository {
     return updated;
   }
 
-  // 👇 Nuevo método
+  // Método específico para actualizar disponibilidad
   async updateAvailability(id: number, isAvailable: boolean): Promise<Item> {
-  try {
-    const updated = await this.update(id, { isAvailable });
-    console.log("[ITEM REPO] Item availability updated:", updated);
-    return updated;
-  } catch (err) {
-    console.error("[ITEM REPO] Error updating item availability:", err);
-    throw err; // relanzar para que el service también lo capture
+    try {
+      const updated = await this.update(id, { isAvailable });
+      console.log("[ITEM REPO] Item availability updated:", updated);
+      return updated;
+    } catch (err) {
+      console.error("[ITEM REPO] Error updating item availability:", err);
+      throw err;
+    }
+  }
+
+  // Nuevo método genérico para actualizar cualquier propiedad del item
+  async updateItem(id: number, updates: Partial<Item>): Promise<Item> {
+    try {
+      const updated = await this.update(id, updates);
+      console.log("[ITEM REPO] Item updated:", updated);
+      return updated;
+    } catch (err) {
+      console.error("[ITEM REPO] Error updating item:", err);
+      throw err;
+    }
   }
 }
 
-}
 
 

@@ -29,6 +29,11 @@ export class HttpItemRepository implements ItemRepository {
   //   const res = await axios.put<Item>(`${this.baseUrl}/items/${id}`, item);
   //   return res.data;
   // }
+  // Actualiza propiedades arbitrarias del item
+async updateItem(id: number, data: Partial<Item>): Promise<Item> {
+  const res = await axios.put<Item>(`${this.baseUrl}/items/${id}`, data);
+  return res.data;
+}
 
   // Actualiza solo disponibilidad usando PATCH
   async updateAvailability(id: number, isAvailable: boolean): Promise<Item> {

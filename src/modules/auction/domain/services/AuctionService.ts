@@ -29,7 +29,7 @@ export class AuctionService {
     if (!item) throw new Error("Item not found");
     if (item.userId !== Number(user.id)) throw new Error("El item no pertenece al usuario");
     if (!item.isAvailable) throw new Error("El item no está disponible para subasta");
-    if (input.buyNowPrice !== undefined && input.buyNowPrice <=input.startingPrice)
+    if (input.buyNowPrice !== undefined && input.buyNowPrice <=input.startingPrice && input.buyNowPrice!==0)
       throw new Error("El precio de compra rápida debe ser mayor al precio inicial");
     const creditCost = input.durationHours === 48 ? 3 : 1;
     console.log(`[AUCTION SERVICE] User credits: ${user.credits}, creditCost: ${creditCost}`);
@@ -172,6 +172,44 @@ console.log("[AUCTION SERVICE] Item availability set to false");
     if (!user) throw new Error("Usuario no encontrado");
     return user;
   }
+  // Finalizar subasta
+async finalizeAuction(auctionId: number) {
+  console.log("[AUCTION SERVICE] finalizeAuction called with auctionId:", auctionId);
+
+  const auction = await this.auctions.findById(auctionId);
+  if (!auction) throw new Error("Auction not found");
+
+  // Determinar el ganador por la puja más alta
+  const winnerBid = auction.bids.sort((a, b) => b.amount - a.amount)[0];
+
+  if (winnerBid) {
+    console.log("[AUCTION SERVICE] Winner found:", winnerBid.userId, "amount:", winnerBid.amount);
+
+    const item = await this.items.findById(auction.item.id);
+    if (!item) throw new Error("Item not found");
+
+    // Transferir propiedad al ganador y volver disponible
+    item.userId = winnerBid.userId;
+    item.isAvailable = true;
+    await this.items.updateItem(item.id, { userId: winnerBid.userId, isAvailable: true });
+
+    console.log(`[AUCTION SERVICE] Item ${item.name} transferido a usuario ${winnerBid.userId} y disponible`);
+  } else {
+    // Si no hubo pujas, simplemente liberamos el item
+    const item = await this.items.findById(auction.item.id);
+    if (item) {
+      item.isAvailable = true;
+      await this.items.updateItem(item.id, { isAvailable: true });
+      console.log(`[AUCTION SERVICE] Item ${item.name} liberado sin ganador`);
+    }
+  }
+
+  // Cerrar la subasta
+  auction.status = "CLOSED";
+  await this.auctions.save(auction);
+  console.log("[AUCTION SERVICE] Auction closed and saved");
+}
+
 }
 
 

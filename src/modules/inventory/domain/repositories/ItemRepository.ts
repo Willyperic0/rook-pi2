@@ -5,5 +5,6 @@ export interface ItemRepository {
   findAll(): Promise<Item[]>;
   findByUserId(userId: number): Promise<Item[]>;
   updateAvailability(id: number, isAvailable: boolean): Promise<Item>;
+  updateItem(id: number, data: Partial<Item>): Promise<Item>;
 }
   
