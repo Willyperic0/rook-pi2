@@ -126,18 +126,19 @@ export function setAuctionServiceForSocket(service: AuctionService) {
   auctionService = service;
 }
 
-export function emitBidUpdate(auctionId: number, auctionData: any) {
+export function emitBidUpdate(_auctionId: number, auctionData: any) {
   if (!io) return;
-  io.to(`auction-${auctionId}`).emit("AUCTION_UPDATED", auctionData);
+  io.emit("AUCTION_UPDATED", auctionData); // ⚡ Emitir a todos los clientes
 }
 
+
 export async function emitBuyNow(auctionId: number, _auctionData: any) {
-    if (!io || !auctionService) return;
-    const auction = await auctionService.getAuctionById(auctionId);
-    if (!auction) return;
-    // Solo emite la información de la subasta cerrada, no el historial completo
-    io.emit("AUCTION_CLOSED", { closedAuction: AuctionMapper.toDto(auction) });
+  if (!io || !auctionService) return;
+  const auction = await auctionService.getAuctionById(auctionId);
+  if (!auction) return;
+  io.emit("AUCTION_CLOSED", { closedAuction: AuctionMapper.toDto(auction) });
 }
+
 
 
 
