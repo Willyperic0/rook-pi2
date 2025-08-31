@@ -16,64 +16,69 @@ export class AuctionService {
   ) {}
 
   // Crear subasta usando token
-  async createAuction(input: CreateAuctionInputDTO, token: string): Promise<CreateAuctionOutputDto> {
-    console.log("[AUCTION SERVICE] createAuction called with input:", input, "token:", token);
+async createAuction(input: CreateAuctionInputDTO, token: string): Promise<CreateAuctionOutputDto> {
+  console.log("[AUCTION SERVICE] createAuction called with input:", input, "token:", token);
 
-    const user = await this.users.findByToken(token);
-    console.log("[AUCTION SERVICE] User fetched from token:", user);
-    if (!user) throw new Error("Usuario no encontrado");
-
-    const item = await this.items.findById(input.itemId);
-    console.log("[AUCTION SERVICE] Item fetched by ID:", item);
-    if (!item) throw new Error("Item not found");
-    if (item.userId !== Number(user.id)) throw new Error("El item no pertenece al usuario");
-    if (!item.isAvailable) throw new Error("El item no está disponible para subasta");
-    if (input.buyNowPrice !== undefined && input.buyNowPrice <=input.startingPrice && input.buyNowPrice !== 0)
-      throw new Error("El precio de compra rápida debe ser mayor al precio inicial");
-    const creditCost = input.durationHours === 48 ? 3 : 1;
-    console.log(`[AUCTION SERVICE] User credits: ${user.credits}, creditCost: ${creditCost}`);
-    if (user.credits < creditCost) throw new Error("Créditos insuficientes");
-    await this.users.updateCredits(user.id, user.credits - creditCost);
-    console.log("[AUCTION SERVICE] User credits updated");
-
-    try {
-  // Por algo como:
-item.isAvailable = false;
-await this.items.updateAvailability(item.id, false);
-console.log("[AUCTION SERVICE] Item availability set to false");
-} catch (err) {
-  console.error("[AUCTION SERVICE] Failed to update item availability:", err);
-  throw err;
-}
-
-
-    const auction = new Auction(
-      Date.now(),
-      item.name,
-      item.description,
-      input.startingPrice,
-      input.startingPrice,
-      item,
-      input.buyNowPrice,
-      "OPEN",
-      new Date(),
-      [],
-      undefined,
-    );
-
-    try {
-  await this.auctions.save(auction);
-  console.log("[AUCTION SERVICE] Auction saved:", auction);
-
-  emitNewAuction(AuctionMapper.toDto(auction, input.durationHours));
-  console.log("[AUCTION SERVICE] New auction emitted via socket");
-} catch (err) {
-  console.error("[AUCTION SERVICE] Error saving or emitting auction:", err);
-}
-
-
-    return { auction: AuctionMapper.toDto(auction, input.durationHours) };
+  // 🔹 Validar que el precio inicial sea mínimo 1
+  if (input.startingPrice < 1) {
+    throw new Error("El precio inicial debe ser mínimo 1");
   }
+
+  const user = await this.users.findByToken(token);
+  console.log("[AUCTION SERVICE] User fetched from token:", user);
+  if (!user) throw new Error("Usuario no encontrado");
+
+  const item = await this.items.findById(input.itemId);
+  console.log("[AUCTION SERVICE] Item fetched by ID:", item);
+  if (!item) throw new Error("Item not found");
+  if (item.userId !== Number(user.id)) throw new Error("El item no pertenece al usuario");
+  if (!item.isAvailable) throw new Error("El item no está disponible para subasta");
+
+  if (input.buyNowPrice !== undefined && input.buyNowPrice <= input.startingPrice && input.buyNowPrice !== 0)
+    throw new Error("El precio de compra rápida debe ser mayor al precio inicial");
+
+  const creditCost = input.durationHours === 48 ? 3 : 1;
+  console.log(`[AUCTION SERVICE] User credits: ${user.credits}, creditCost: ${creditCost}`);
+  if (user.credits < creditCost) throw new Error("Créditos insuficientes");
+  await this.users.updateCredits(user.id, user.credits - creditCost);
+  console.log("[AUCTION SERVICE] User credits updated");
+
+  try {
+    item.isAvailable = false;
+    await this.items.updateAvailability(item.id, false);
+    console.log("[AUCTION SERVICE] Item availability set to false");
+  } catch (err) {
+    console.error("[AUCTION SERVICE] Failed to update item availability:", err);
+    throw err;
+  }
+
+  const auction = new Auction(
+    Date.now(),
+    item.name,
+    item.description,
+    input.startingPrice,
+    input.startingPrice,
+    item,
+    input.buyNowPrice,
+    "OPEN",
+    new Date(),
+    [],
+    undefined,
+  );
+
+  try {
+    await this.auctions.save(auction);
+    console.log("[AUCTION SERVICE] Auction saved:", auction);
+
+    emitNewAuction(AuctionMapper.toDto(auction, input.durationHours));
+    console.log("[AUCTION SERVICE] New auction emitted via socket");
+  } catch (err) {
+    console.error("[AUCTION SERVICE] Error saving or emitting auction:", err);
+  }
+
+  return { auction: AuctionMapper.toDto(auction, input.durationHours) };
+}
+
 
   // Pujar usando token
   // Pujar usando token
