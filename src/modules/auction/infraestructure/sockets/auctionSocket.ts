@@ -132,25 +132,11 @@ export function emitBidUpdate(auctionId: number, auctionData: any) {
 }
 
 export async function emitBuyNow(auctionId: number, _auctionData: any) {
-  if (!io || !auctionService) return;
-
-  const auction = await auctionService.getAuctionById(auctionId);
-  if (!auction) return;
-
-  // ⚡ Aquí usamos el dueño ORIGINAL como seller
-  const sellerId = auction.getOwnerId?.() ?? null; // asegúrate de tener este campo en Auction
-  const buyerId = auction.getHighestBidderId?.() ?? null; // o el que hizo buyNow
-
-  const activeAuctions = await auctionService.listOpenAuctions();
-  const itemsBought = buyerId ? await auctionService.getPurchasedAuctions(buyerId) : [];
-  const itemsSold = sellerId ? await auctionService.getSoldAuctions(sellerId) : [];
-
-  io.emit("AUCTION_CLOSED", {
-    closedAuction: AuctionMapper.toDto(auction),
-    activeAuctions: activeAuctions.map(a => AuctionMapper.toDto(a)),
-    itemsBought: itemsBought.map(a => AuctionMapper.toDto(a)),
-    itemsSold: itemsSold.map(a => AuctionMapper.toDto(a)),
-  });
+    if (!io || !auctionService) return;
+    const auction = await auctionService.getAuctionById(auctionId);
+    if (!auction) return;
+    // Solo emite la información de la subasta cerrada, no el historial completo
+    io.emit("AUCTION_CLOSED", { closedAuction: AuctionMapper.toDto(auction) });
 }
 
 
