@@ -21,22 +21,28 @@ import { ItemService } from "../../../inventory/domain/services/ItemService";
 import { HttpUserRepository } from "../../../user/domain/repositories/HttpUserRepository";
 import { UserController } from "./controllers/UserController";
 import userRoutes from "./routes/UserRoutes";
-// --- Instancias de repositorios y servicios ---
-const userRepoForAuctions = new HttpUserRepository("http://localhost:4000"); // apunta al userServer
-const auctionRepo = new InMemoryAuctionRepository();
-const itemRepoForAuctions = new HttpItemRepository("http://localhost:3002");
 
-const auctionService = new AuctionService(auctionRepo, itemRepoForAuctions, userRepoForAuctions);
-const auctionController = new AuctionController(auctionService);
-
-const itemRepo = new HttpItemRepository("http://localhost:3002"); 
-const itemService = new ItemService(itemRepo);
-const itemController = new ItemController(itemService);
-
+// ----------------------
+// Instancias únicas
+// ----------------------
 const userRepo = new HttpUserRepository("http://localhost:4000"); // apunta al userServer
+const itemRepo = new HttpItemRepository("http://localhost:3002");
+const auctionRepo = new InMemoryAuctionRepository();
+
+// Services
+const auctionService = new AuctionService(auctionRepo, itemRepo, userRepo);
+const itemService = new ItemService(itemRepo);
+
+// Controllers
+const auctionController = new AuctionController(auctionService);
+const itemController = new ItemController(itemService);
 const userController = new UserController(userRepo);
-// --- Configuración Express ---
+
+// ----------------------
+// Configuración Express
+// ----------------------
 const app = express();
+
 app.use((req, _res, next) => {
   console.log("[DEBUG] Method:", req.method, "URL:", req.url);
   next();
@@ -51,24 +57,23 @@ app.use(cors({
 
 app.use(express.json());
 
-// --- Rutas de Auctions ---
+// Rutas
 app.use(env.apiPrefix + "/auctions", auctionRoutes(auctionController));
-
-// --- Rutas de Items ---
 app.use(env.apiPrefix + "/items", itemRoutes(itemController));
-
-// --- Rutas de Users ---
 app.use(env.apiPrefix + "/users", userRoutes(userController));
-// --- Server HTTP + Sockets ---
+
+// ----------------------
+// Server HTTP + Sockets
+// ----------------------
 const server = http.createServer(app);
 
-// Asignar AuctionService a los sockets
+// Pasar AuctionService compartido a los sockets
 setAuctionServiceForSocket(auctionService);
-
-// Inicializar sockets
 initAuctionSocket(server);
 
-// --- Levantar servidor ---
+// ----------------------
+// Levantar servidor
+// ----------------------
 server.listen(env.port, () => {
   console.log(`API Auctions running on port ${env.port}`);
 });
