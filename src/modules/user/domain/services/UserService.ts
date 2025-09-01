@@ -1,4 +1,4 @@
-import { User } from "../model/User";
+import { User } from "../models/User";
 import axios from "axios";
 /**
  * Servicio de Usuarios
