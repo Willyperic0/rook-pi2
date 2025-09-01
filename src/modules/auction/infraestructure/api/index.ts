@@ -25,8 +25,8 @@ import userRoutes from "./routes/UserRoutes";
 // ----------------------
 // Instancias únicas
 // ----------------------
-const userRepo = new HttpUserRepository("http://localhost:4000"); // apunta al userServer
-const itemRepo = new HttpItemRepository("http://localhost:3002");
+const userRepo = new HttpUserRepository(env.userServiceUrl); // apunta al userServer
+const itemRepo = new HttpItemRepository(env.itemServiceUrl);
 const auctionRepo = new InMemoryAuctionRepository();
 
 // Services
@@ -50,7 +50,7 @@ app.use((req, _res, next) => {
 
 // Habilitar CORS
 app.use(cors({
-  origin: "http://localhost:5173", // frontend Vite
+  origin: env.corsOrigin, // frontend Vite
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));

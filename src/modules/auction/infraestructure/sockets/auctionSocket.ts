@@ -3,15 +3,14 @@ import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import { AuctionService } from "../../domain/services/AuctionService";
 import { AuctionMapper } from "../../application/mappers/AuctionMapper";
-
-const JWT_SECRET = "mi_secreto_super_seguro";
+import { env } from "../config/env";
 
 let io: Server;
 let auctionService: AuctionService;
 
 export function initAuctionSocket(server: HttpServer) {
   io = new Server(server, {
-    cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] },
+    cors: { origin: env.corsOrigin, methods: ["GET", "POST"] },
   });
 
   // Middleware de autenticación
@@ -20,7 +19,7 @@ export function initAuctionSocket(server: HttpServer) {
     if (!token) return next(new Error("Token requerido"));
 
     try {
-      const payload: any = jwt.verify(token, JWT_SECRET);
+      const payload: any = jwt.verify(token, env.jwt.secret);
       socket.data.userId = payload.userId;
       next();
     } catch {
@@ -128,9 +127,8 @@ export function setAuctionServiceForSocket(service: AuctionService) {
 
 export function emitBidUpdate(_auctionId: number, auctionData: any) {
   if (!io) return;
-  io.emit("AUCTION_UPDATED", auctionData); // ⚡ Emitir a todos los clientes
+  io.emit("AUCTION_UPDATED", auctionData);
 }
-
 
 export async function emitBuyNow(auctionId: number, _auctionData: any) {
   if (!io || !auctionService) return;
@@ -138,13 +136,6 @@ export async function emitBuyNow(auctionId: number, _auctionData: any) {
   if (!auction) return;
   io.emit("AUCTION_CLOSED", { closedAuction: AuctionMapper.toDto(auction) });
 }
-
-
-
-
-
-
-
 
 export function emitNewAuction(auctionData: any) {
   if (!io) return;

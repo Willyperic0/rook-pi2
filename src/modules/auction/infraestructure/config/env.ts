@@ -1,10 +1,16 @@
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
+
+// Cargar variables de entorno desde el .env
 dotenv.config();
 
 export const env = {
   port: process.env["PORT"] ?? "3000",
   apiPrefix: process.env["API_PREFIX"] ?? "/api",
-  socketPort: process.env["SOCKET_PORT"] ?? "3001",
+
+  userServiceUrl: process.env["USER_SERVICE_URL"] ?? "http://localhost:4000",
+  itemServiceUrl: process.env["ITEM_SERVICE_URL"] ?? "http://localhost:3002",
+
+  corsOrigin: process.env["CORS_ORIGIN"]?.split(",") ?? ["http://localhost:5173"],
 
   db: {
     host: process.env["DB_HOST"] ?? "localhost",
@@ -13,5 +19,9 @@ export const env = {
     password: process.env["DB_PASSWORD"] ?? "secret",
     name: process.env["DB_NAME"] ?? "auction_db",
   },
-};
 
+  jwt: {
+    secret: process.env["JWT_SECRET"] ?? "default_secret",
+    expiresIn: process.env["JWT_EXPIRES_IN"] ?? "1h",
+  },
+};
