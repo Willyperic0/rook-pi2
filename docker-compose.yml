@@ -1,0 +1,58 @@
+services:
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_BASE:    ${VITE_API_BASE}
+        VITE_ITEMS_BASE:  ${VITE_ITEMS_BASE}
+        VITE_USERS_BASE:  ${VITE_USERS_BASE}
+        VITE_SOCKET_PATH: ${SOCKET_PATH}
+        VITE_WS_URL:      ${VITE_WS_URL}
+    container_name: rook_client
+    restart: unless-stopped
+    env_file: [.env]
+
+  api:
+    build: ./api
+    container_name: rook_api
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      PORT: ${API_PORT}
+    expose:
+      - "${API_PORT}"
+
+  items:
+    build:
+      context: ./items/items/Rook---PI2
+      dockerfile: ../../Dockerfile
+    container_name: rook_items
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      PORT: ${ITEMS_PORT}
+    expose:
+      - "${ITEMS_PORT}"
+
+  users:
+    build:
+      context: ./users/users/Rook---PI2
+      dockerfile: ../../Dockerfile
+    container_name: rook_users
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      PORT: ${USERS_PORT}
+    expose:
+      - "${USERS_PORT}"
+
+  reverse-proxy:
+    image: nginx:1.27-alpine
+    container_name: rook_proxy
+    restart: unless-stopped
+    depends_on: [client, api, items, users]
+    ports:
+      - "80:80"
+    env_file: [.env]
+    volumes:
+      - ./reverse-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
