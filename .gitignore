@@ -1,0 +1,37 @@
+# Node modules
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependencias instaladas
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Directorios de compilación / output
+dist/
+build/
+.out/
+
+# Archivos de entorno locales
+.env
+.env.local
+.env.*.local
+
+# IDE / Editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Otros temporales
+*.log
+*.tmp
