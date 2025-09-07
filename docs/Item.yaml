@@ -5,7 +5,7 @@ info:
   description: Endpoints para listar y obtener items del inventario.
 servers:
   - url: http://nexusroot.bucaramanga.upb.edu.co/
-    description: Servidor local
+    description: Servidor de producción
 
 paths:
   /items:
