@@ -1,0 +1,372 @@
+openapi: 3.0.0
+info:
+  title: API Subastas
+  version: "1.0"
+  description: Endpoints para crear, listar, pujar y comprar subastas, así como obtener el historial de subastas de usuarios.
+
+servers:
+  - url: http://nexusroot.bucaramanga.upb.edu.co/
+    description: Servidor de producción
+
+paths:
+  /auctions:
+    get:
+      summary: Listar subastas abiertas
+      description: Obtiene todas las subastas abiertas en el sistema
+      responses:
+        '200':
+          description: Lista de subastas abiertas
+          content:
+            application/json:
+              example:
+                data:
+                  - id: "1"
+                    name: "Subasta Espada Épica"
+                    description: "Una espada legendaria"
+                    startingPrice: 500
+                    currentPrice: 600
+                    itemId: "101"
+                    sellerId: "1"
+                    status: OPEN
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+    post:
+      summary: Crear una subasta
+      description: Crea una nueva subasta usando los datos del body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Auction"
+            example:
+              name: "Subasta Mago de Fuego"
+              description: "Entrenado en la magia elemental"
+              startingPrice: 700
+              buyNowPrice: 1000
+              durationHours: 48
+              itemId: "103"
+      responses:
+        '201':
+          description: Subasta creada
+          content:
+            application/json:
+              example:
+                auction:
+                  id: "3"
+                  name: "Subasta Mago de Fuego"
+                  description: "Entrenado en la magia elemental"
+                  startingPrice: 700
+                  currentPrice: 700
+                  buyNowPrice: 1000
+                  itemId: "103"
+                  sellerId: "2"
+                  status: OPEN
+        '400':
+          description: Error en la creación
+          content:
+            application/json:
+              examples:
+                token:
+                  value: { error: "Token no proporcionado" }
+                credits:
+                  value: { error: "Créditos insuficientes" }
+                item_owner:
+                  value: { error: "El item no pertenece al usuario" }
+                item_unavailable:
+                  value: { error: "El item no está disponible para subasta" }
+                price_invalid:
+                  value: { error: "El precio de compra rápida debe ser mayor al precio inicial" }
+                startingPrice_invalid:
+                  value: { error: "El precio inicial debe ser mínimo 1" }
+
+  /auctions/{id}:
+    get:
+      summary: Obtener subasta por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID de la subasta
+      responses:
+        '200':
+          description: Subasta encontrada
+          content:
+            application/json:
+              example:
+                id: "1"
+                name: "Subasta Espada Épica"
+                description: "Una espada legendaria"
+                startingPrice: 500
+                currentPrice: 600
+                buyNowPrice: 800
+                itemId: "101"
+                sellerId: "1"
+                status: OPEN
+        '404':
+          description: Subasta no encontrada
+          content:
+            application/json:
+              example:
+                error: "Auction not found"
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+  /auctions/{id}/bid:
+    post:
+      summary: Hacer una puja en la subasta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+              required:
+                - amount
+            example:
+              amount: 650
+      responses:
+        '200':
+          description: Puja realizada
+          content:
+            application/json:
+              example:
+                success: true
+        '400':
+          description: Error en la puja
+          content:
+            application/json:
+              examples:
+                token:
+                  value: { error: "Token no proporcionado" }
+                auction_closed:
+                  value: { error: "Auction not found" }
+                own_auction:
+                  value: { error: "El creador no puede pujar en su propia subasta" }
+                buyNow_exceeded:
+                  value: { error: "La puja iguala o supera el precio de compra rápida. Usa el botón de compra rápida" }
+                insufficient_credits:
+                  value: { error: "Créditos insuficientes" }
+
+  /auctions/{id}/buy:
+    post:
+      summary: Compra inmediata de una subasta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Compra realizada
+          content:
+            application/json:
+              example:
+                success: true
+                message: "Compra rápida realizada correctamente"
+        '400':
+          description: No se pudo realizar la compra
+          content:
+            application/json:
+              example:
+                error: "No se pudo realizar la compra rápida"
+        '403':
+          description: Créditos insuficientes
+          content:
+            application/json:
+              example:
+                error: "Créditos insuficientes"
+        '404':
+          description: Subasta no encontrada
+          content:
+            application/json:
+              example:
+                error: "Auction not found"
+        '401':
+          description: Token no proporcionado
+          content:
+            application/json:
+              example:
+                error: "Token no proporcionado"
+
+  /auctions/{id}/bids:
+    get:
+      summary: Obtener todas las pujas de una subasta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de pujas
+          content:
+            application/json:
+              example:
+                - id: "1"
+                  auctionId: "1"
+                  userId: "2"
+                  amount: 550
+                  createdAt: "2025-09-06T22:00:00Z"
+        '404':
+          description: Subasta no encontrada
+          content:
+            application/json:
+              example:
+                error: "Auction not found"
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+  /auctions/me:
+    get:
+      summary: Subastas del usuario actual
+      responses:
+        '200':
+          description: Lista de subastas
+          content:
+            application/json:
+              example:
+                data: []
+        '401':
+          description: Token no proporcionado
+          content:
+            application/json:
+              example:
+                error: "Token no proporcionado"
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+  /auctions/history/purchased/{userId}:
+    get:
+      summary: Subastas compradas por usuario
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de subastas compradas
+          content:
+            application/json:
+              example:
+                data:
+                  - id: "3"
+                    name: "Subasta Mago de Fuego"
+                    description: "Entrenado en la magia elemental"
+                    startingPrice: 700
+                    currentPrice: 700
+                    buyNowPrice: 1000
+                    itemId: "103"
+                    sellerId: "2"
+                    status: SOLD
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+  /auctions/history/sold/{userId}:
+    get:
+      summary: Subastas vendidas por usuario
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de subastas vendidas
+          content:
+            application/json:
+              example:
+                data:
+                  - id: "1"
+                    name: "Subasta Espada Épica"
+                    description: "Una espada legendaria"
+                    startingPrice: 500
+                    currentPrice: 600
+                    buyNowPrice: 800
+                    itemId: "101"
+                    sellerId: "1"
+                    status: SOLD
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+components:
+  schemas:
+    Auction:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        startingPrice:
+          type: number
+        currentPrice:
+          type: number
+        buyNowPrice:
+          type: number
+        itemId:
+          type: string
+        sellerId:
+          type: string
+        status:
+          type: string
+          enum: [OPEN, CLOSED, SOLD]
+        durationHours:
+          type: number
+    Bid:
+      type: object
+      properties:
+        id:
+          type: string
+        auctionId:
+          type: string
+        userId:
+          type: string
+        amount:
+          type: number
+        createdAt:
+          type: string
+          format: date-time

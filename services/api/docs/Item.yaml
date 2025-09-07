@@ -1,0 +1,123 @@
+openapi: 3.0.0
+info:
+  title: API Items
+  version: "1.0"
+  description: Endpoints para listar y obtener items del inventario.
+servers:
+  - url: http://nexusroot.bucaramanga.upb.edu.co/
+    description: Servidor local
+
+paths:
+  /items:
+    get:
+      summary: Listar todos los items
+      description: Obtiene todos los items disponibles en el sistema.
+      responses:
+        '200':
+          description: Lista de items
+          content:
+            application/json:
+              example:
+                - id: 101
+                  userId: 1
+                  name: "Espada Épica"
+                  description: "Una espada legendaria"
+                  type: "Armas"
+                  isAvailable: true
+                  imagen: "data:image/png;base64,..." 
+                - id: 102
+                  userId: 1
+                  name: "Escudo de Hierro"
+                  description: "Resistente y robusto"
+                  type: "Armaduras"
+                  isAvailable: true
+                  imagen: "data:image/png;base64,..." 
+                - id: 103
+                  userId: 2
+                  name: "Mago de Fuego"
+                  description: "Entrenado en la magia elemental"
+                  type: "Héroes"
+                  heroType: "Mago Fuego"
+                  isAvailable: true
+                  imagen: "data:image/png;base64,..." 
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+  /items/{id}:
+    get:
+      summary: Obtener un item por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del item a consultar
+      responses:
+        '200':
+          description: Item encontrado
+          content:
+            application/json:
+              example:
+                id: 101
+                userId: 1
+                name: "Espada Épica"
+                description: "Una espada legendaria"
+                type: "Armas"
+                isAvailable: true
+                imagen: "data:image/png;base64,..." 
+        '404':
+          description: Item no encontrado
+          content:
+            application/json:
+              example:
+                error: "Item not found"
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+components:
+  schemas:
+    Item:
+      type: object
+      description: Representa un item del inventario
+      properties:
+        id:
+          type: string
+          description: Identificador del item
+        userId:
+          type: number
+          description: ID del usuario propietario
+        name:
+          type: string
+          description: Nombre del item
+        description:
+          type: string
+          description: Descripción del item
+        type:
+          type: string
+          description: Tipo del item (Armas, Armaduras, Héroes, etc.)
+        heroType:
+          type: string
+          description: Subtipo de héroe (solo para items tipo Héroes)
+        isAvailable:
+          type: boolean
+          description: Indica si el item está disponible
+        imagen:
+          type: string
+          description: Imagen codificada en base64
+      required:
+        - id
+        - userId
+        - name
+        - description
+        - type
+        - isAvailable
+        - imagen

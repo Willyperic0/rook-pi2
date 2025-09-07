@@ -1,0 +1,33 @@
+name: Run Tests
+
+# Se ejecuta en cada push y pull request a la rama main
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - old-main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Set environment variables
+        run: echo "API_BASE=${{ secrets.API_BASE }}" >> $GITHUB_ENV
+
+      - name: Run tests
+        run: npm run test
