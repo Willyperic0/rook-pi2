@@ -4,7 +4,7 @@ import { UserController } from "../controllers/UserController";
 
 const router = Router();
 
-export default function userRoutes(userController: UserController) {
+export default function UserRoutes(userController: UserController) {
   router.get("/:id", userController.getUser);
   router.get("/me", userController.getCurrentUser);
   return router;
