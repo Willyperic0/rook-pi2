@@ -5,11 +5,9 @@ import { UserDto } from "../dto/UserDto";
 export class UserMapper {
   static toDto(user: User): UserDto {
     return {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      credits: user.credits,
-      isActive: user.isActive,
+      id: user.getId(),
+      username: user.getUsername(),
+      credits: user.getCredits(),
     };
   }
 
@@ -17,9 +15,7 @@ export class UserMapper {
     return new User(
       dto.id,
       dto.username,
-      dto.email,
       dto.credits,
-      dto.isActive,
     );
   }
 }

@@ -7,6 +7,7 @@ export const ITEM_TYPES = [
   "Ítems",
   "Habilidades especiales",
   "Épicas",
+  "UNKNOWN"
 ] as const;
 export type ItemType = typeof ITEM_TYPES[number];
 
@@ -19,12 +20,13 @@ export const HERO_TYPES = [
   "Pícaro Machete",
   "Chamán",
   "Médico",
+  "UNKNOWN"
 ] as const;
 export type HeroType = typeof HERO_TYPES[number];
 
 export interface Item {
-  id: number;
-  userId: number;
+  id: string;
+  userId: string;
   name: string;
   description: string;
   type: ItemType;

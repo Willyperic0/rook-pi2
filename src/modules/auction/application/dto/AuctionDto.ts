@@ -2,15 +2,15 @@ import { BidDto } from "./BidDto";
 import { AuctionStatus } from "../../domain/models/AuctionStatus";
 import { ItemDto } from "../../../inventory/application/dto/ItemDto";
 export interface AuctionDto {
-  id: number;
-  itemId: number;
-  sellerId: number;
+  id: string;
+  itemId: string;
+  sellerId: string;
 
   startingPrice: number;      // precio base
   currentPrice: number;       // precio actual (máxima puja)
 
   // --- Compra inmediata (Buy Now) ---
-  buyNowPrice?: number;       // si existe, hay compra inmediata
+  buyNowPrice?: number| undefined;       // si existe, hay compra inmediata
   buyNowEnabled: boolean;     // true mientras esté disponible
 
   createdAt: string;          // ISO
@@ -19,7 +19,7 @@ export interface AuctionDto {
 
   highestBid?: BidDto;
   bidsCount: number;
-  highestBidderId?: number | undefined;
-
+  highestBidderId?: string | undefined;
+  
   item: ItemDto
 }

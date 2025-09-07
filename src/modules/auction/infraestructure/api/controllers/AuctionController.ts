@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { AuctionService } from "../../../domain/services/AuctionService";
+import { IAuctionService } from "../../../domain/services/IAuctionService";
 import { AuctionMapper } from "../../../application/mappers/AuctionMapper";
 
 // El service ya debería recibir la implementación de repos en la capa de configuración
 export class AuctionController {
-  constructor(private readonly auctionService: AuctionService) {}
+  constructor(private readonly auctionService: IAuctionService) {}
 
   // Crear subasta
   createAuction = async (req: Request, res: Response) => {
@@ -22,7 +22,9 @@ export class AuctionController {
   // Obtener subasta por id
   getAuction = async (req: Request, res: Response): Promise<Response> => {
     try {
-      const auction = await this.auctionService.getAuctionById(Number(req.params["id"]));
+      const auctionId = req.params["id"];
+      if (!auctionId) return res.status(400).json({ error: "auctionId no proporcionado" });
+      const auction = await this.auctionService.getAuctionById(auctionId);
       if (!auction) return res.status(404).json({ error: "Auction not found" });
       return res.json(AuctionMapper.toDto(auction));
     } catch (error: any) {
@@ -45,18 +47,24 @@ export class AuctionController {
   };
 
   // Pujar en subasta usando token
-  placeBid = async (req: Request, res: Response) => {
-    try {
-      const token = req.headers.authorization?.split(" ")[1];
-      if (!token) throw new Error("Token no proporcionado");
+  placeBid = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) throw new Error("Token no proporcionado");
 
-      const amount = req.body.amount;
-      const success = await this.auctionService.placeBid(Number(req.params["id"]), token, amount);
-      res.json({ success });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  };
+    const auctionId = req.params["id"];
+    if (!auctionId) return res.status(400).json({ error: "auctionId no proporcionado" });
+
+    const amount = req.body.amount;
+    if (!amount) throw new Error("Amount no proporcionado");
+
+    const success = await this.auctionService.placeBid(auctionId, token, amount);
+    return res.json({ success });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
 
   // Compra rápida usando token
   buyNow = async (req: Request, res: Response) => {
@@ -64,7 +72,14 @@ export class AuctionController {
   if (!token) return res.status(401).json({ error: "Token no proporcionado" });
 
   try {
-    const success = await this.auctionService.buyNow(Number(req.params["id"]), token);
+    const user = await this.auctionService.getCurrentUser(token);
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    const auctionId = req.params["id"]; // coincide con tu ruta
+if (!auctionId) return res.status(400).json({ error: "auctionId no proporcionado" });
+
+
+    const success = await this.auctionService.buyNow(auctionId, token);
     if (!success) return res.status(400).json({ error: "No se pudo realizar la compra rápida" });
 
     return res.status(200).json({ success: true, message: "Compra rápida realizada correctamente" });
@@ -76,13 +91,15 @@ export class AuctionController {
 };
 
 
+
   // Obtener pujas de una subasta
   getBids = async (req: Request, res: Response) => {
     try {
-      const auctionId = Number(req.params["id"]);
+      const auctionId = req.params["id"];
+      if (!auctionId) return res.status(400).json({ error: "auctionId no proporcionado" });
       const auction = await this.auctionService.getAuctionById(auctionId);
       if (!auction) return res.status(404).json({ error: "Auction not found" });
-      return res.json(auction.bids || []);
+      return res.json(auction.getBids() || []);
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }
@@ -105,7 +122,8 @@ export class AuctionController {
   // Subastas compradas
   getPurchasedAuctions = async (req: Request, res: Response) => {
     try {
-      const userId = Number(req.params["userId"]);
+      const userId = req.params["userId"];
+      if (!userId) return res.status(400).json({ error: "userId no proporcionado" });
       const auctions = await this.auctionService.getPurchasedAuctions(userId);
       return res.json({ data: auctions.map(a => AuctionMapper.toDto(a)) });
     } catch (err: any) {
@@ -116,7 +134,8 @@ export class AuctionController {
   // Subastas vendidas
   getSoldAuctions = async (req: Request, res: Response) => {
     try {
-      const userId = Number(req.params["userId"]);
+      const userId = req.params["userId"];
+      if (!userId) return res.status(400).json({ error: "userId no proporcionado" });
       const auctions = await this.auctionService.getSoldAuctions(userId);
       return res.json({ data: auctions.map(a => AuctionMapper.toDto(a)) });
     } catch (err: any) {

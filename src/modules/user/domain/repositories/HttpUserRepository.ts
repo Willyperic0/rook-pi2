@@ -1,13 +1,14 @@
 import { User } from "../../domain/models/User";
+import { UserRepository } from "./UserRepository";
 import axios from "axios";
-export class HttpUserRepository {
+export class HttpUserRepository implements UserRepository {
   constructor(private readonly baseUrl: string) {}
 
   async findById(id: string): Promise<User | null> {
     const res = await fetch(`${this.baseUrl}/users/${id}`);
     if (!res.ok) return null;
     const data = await res.json();
-    return new User(data.id, data.username, data.email, data.credits, data.isActive);
+    return new User(data.id, data.username, data.credits);
   }
 
   async updateCredits(id: string, credits: number): Promise<User | null> {
@@ -18,7 +19,7 @@ export class HttpUserRepository {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return new User(data.id, data.username, data.email, data.credits, data.isActive);
+    return new User(data.id, data.username, data.credits);
   }
 
   async findByToken(token: string): Promise<User | null> {
@@ -28,7 +29,7 @@ export class HttpUserRepository {
       });
       if (!res.data) return null;
       const data = res.data;
-      return new User(data.id, data.username, data.email, data.credits, data.isActive);
+      return new User(data.id, data.username, data.credits);
     } catch {
       return null;
     }

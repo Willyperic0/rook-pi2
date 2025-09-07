@@ -4,48 +4,39 @@ import { AuctionDto } from "../dto/AuctionDto";
 import { ItemMapper } from "../../../inventory/application/mappers/ItemMapper";
 
 export class AuctionMapper {
-  static toDto(auction: Auction, durationHours: 24 | 48 = 24): AuctionDto {
-    const endsAt = new Date(auction.createdAt.getTime() + durationHours * 60 * 60 * 1000);
-    const lastBid = auction.bids.at(-1);
+  static toDto(auction: Auction, durationHours: 24 | 48 = 24): AuctionDto {
+    const endsAt = new Date(auction.getCreatedAt().getTime() + durationHours * 60 * 60 * 1000);
+    const lastBid = auction.getBids().at(-1);
 
-    const base = {
-      id: auction.id,
-      sellerId: auction.item.userId,
-      itemId: auction.item.id,
-      item: ItemMapper.toDto(auction.item),
+    const dto: AuctionDto = {
+      id: auction.getId(),
+      sellerId: auction.getItem().userId,
+      itemId: auction.getItem().id,
+      item: ItemMapper.toDto(auction.getItem()),
+      startingPrice: auction.getStartingPrice(),
+      currentPrice: auction.getCurrentPrice(),
+      buyNowEnabled: auction.getStatus() === "OPEN" && auction.getBuyNowPrice() !== undefined,
+      createdAt: auction.getCreatedAt().toISOString(),
+      endsAt: endsAt.toISOString(),
+      status: auction.getStatus(),
+      bidsCount: auction.getBids().length,
+      // Asignación directa, que es más limpia y evita el error
+      buyNowPrice: auction.getBuyNowPrice(),
+      highestBidderId: auction.getWinnerId(),
+    };
 
-      startingPrice: auction.startingPrice,
-      currentPrice: auction.currentPrice,
+    // Usa un 'if' para las propiedades que son objetos complejos y que pueden no existir
+    if (lastBid) {
+      dto.highestBid = {
+        id: lastBid.id,
+        auctionId: auction.getId(),
+        userId: lastBid.userId,
+        amount: lastBid.amount,
+        timestamp: lastBid.createdAt.toISOString(),
+      };
+    }
 
-      buyNowEnabled: auction.status === "OPEN" && auction.buyNowPrice !== undefined,
-
-      createdAt: auction.createdAt.toISOString(),
-      endsAt: endsAt.toISOString(),
-      status: auction.status,
-
-      bidsCount: auction.bids.length,
-    } satisfies Omit<AuctionDto, "buyNowPrice" | "highestBid" | "highestBidderId">;
-
-    return {
-      ...base,
-
-      // solo agregamos si existe (evita asignar undefined)
-      ...(auction.buyNowPrice !== undefined && { buyNowPrice: auction.buyNowPrice }),
-
-      ...(lastBid !== undefined && {
-        highestBid: {
-          id: lastBid.id,
-          auctionId: auction.id,
-          userId: lastBid.userId,
-          amount: lastBid.amount,
-          timestamp: lastBid.createdAt.toISOString(),
-        },
-      }),
-
-      ...(auction.getWinnerId() !== undefined && {
-        highestBidderId: auction.getWinnerId()!,
-      }),
-    };
-  }
+    return dto;
+  }
 }
 

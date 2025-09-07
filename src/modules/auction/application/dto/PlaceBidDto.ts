@@ -1,6 +1,6 @@
 export interface PlaceBidInputDto {
-  auctionId: number;
-  userId: number;  // postor
+  auctionId: string;
+  userId: string;  // postor
   amount: number;
 }
 

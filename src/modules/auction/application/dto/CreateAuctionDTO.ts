@@ -2,8 +2,8 @@ import { AuctionDto } from "./AuctionDto";
 import { AuctionDurationHours } from "../../domain/models/AuctionStatus";
 
 export interface CreateAuctionInputDTO {
-  userId: number;                       // vendedor
-  itemId: number;
+  userId: string;                       // vendedor
+  itemId: string;
   startingPrice: number;
   durationHours: AuctionDurationHours;  // 24 | 48
   buyNowPrice?: number;                 // opcional

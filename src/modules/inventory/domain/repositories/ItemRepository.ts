@@ -1,10 +1,10 @@
 import { Item } from "../models/Item";
 
 export interface ItemRepository {
-  findById(id: number): Promise<Item | null>;
+  findById(id: string): Promise<Item | null>;
   findAll(): Promise<Item[]>;
-  findByUserId(userId: number): Promise<Item[]>;
-  updateAvailability(id: number, isAvailable: boolean): Promise<Item>;
-  updateItem(id: number, data: Partial<Item>): Promise<Item>;
+  findByUserId(userId: string): Promise<Item[]>;
+  updateAvailability(id: string, isAvailable: boolean): Promise<Item>;
+  updateItem(id: string, data: Partial<Item>): Promise<Item>;
 }
   

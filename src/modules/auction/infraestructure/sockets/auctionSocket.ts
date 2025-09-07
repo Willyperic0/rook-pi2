@@ -1,12 +1,12 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
-import { AuctionService } from "../../domain/services/AuctionService";
+import { IAuctionService } from "../../domain/services/IAuctionService";
 import { AuctionMapper } from "../../application/mappers/AuctionMapper";
 import { env } from "../config/env";
 
 let io: Server;
-let auctionService: AuctionService;
+let auctionService: IAuctionService;
 
 export function initAuctionSocket(server: HttpServer) {
   io = new Server(server, {
@@ -101,7 +101,7 @@ export function initAuctionSocket(server: HttpServer) {
             type: "BUY_NOW",
             auctionId: data.auctionId,
             userId: socket.data.userId,
-            amount: auction?.buyNowPrice,
+            amount: auction?.getBuyNowPrice(),
           });
         }
       } catch (err: any) {
@@ -121,16 +121,16 @@ export function initAuctionSocket(server: HttpServer) {
 // ---------------------------
 // Funciones auxiliares
 // ---------------------------
-export function setAuctionServiceForSocket(service: AuctionService) {
+export function setAuctionServiceForSocket(service: IAuctionService) {
   auctionService = service;
 }
 
-export function emitBidUpdate(_auctionId: number, auctionData: any) {
+export function emitBidUpdate(_auctionId: string, auctionData: any) {
   if (!io) return;
   io.emit("AUCTION_UPDATED", auctionData);
 }
 
-export async function emitBuyNow(auctionId: number, _auctionData: any) {
+export async function emitBuyNow(auctionId: string, _auctionData: any) {
   if (!io || !auctionService) return;
   const auction = await auctionService.getAuctionById(auctionId);
   if (!auction) return;

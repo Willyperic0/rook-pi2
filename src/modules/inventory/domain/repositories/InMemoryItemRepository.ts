@@ -8,7 +8,7 @@ export class InMemoryItemRepository implements ItemRepository {
     this.items = initialItems;
   }
 
-  async findById(id: number): Promise<Item | null> {
+  async findById(id: string): Promise<Item | null> {
     const item = this.items.find((item) => item.id === id);
     return item ?? null;
   }
@@ -21,15 +21,15 @@ export class InMemoryItemRepository implements ItemRepository {
     return this.items;
   }
 
-  async deleteById(id: number): Promise<void> {
+  async deleteById(id: string): Promise<void> {
     this.items = this.items.filter((item) => item.id !== id);
   }
 
-  async findByUserId(userId: number): Promise<Item[]> {
+  async findByUserId(userId: string): Promise<Item[]> {
     return this.items.filter((item) => item.userId === userId);
   }
 
-  async update(id: number, updates: Partial<Item>): Promise<Item> {
+  async update(id: string, updates: Partial<Item>): Promise<Item> {
     const index = this.items.findIndex((item) => item.id === id);
     if (index === -1) {
       throw new Error("Item not found");
@@ -45,7 +45,7 @@ export class InMemoryItemRepository implements ItemRepository {
   }
 
   // Método específico para actualizar disponibilidad
-  async updateAvailability(id: number, isAvailable: boolean): Promise<Item> {
+  async updateAvailability(id: string, isAvailable: boolean): Promise<Item> {
     try {
       const updated = await this.update(id, { isAvailable });
       console.log("[ITEM REPO] Item availability updated:", updated);
@@ -57,7 +57,7 @@ export class InMemoryItemRepository implements ItemRepository {
   }
 
   // Nuevo método genérico para actualizar cualquier propiedad del item
-  async updateItem(id: number, updates: Partial<Item>): Promise<Item> {
+  async updateItem(id: string, updates: Partial<Item>): Promise<Item> {
     try {
       const updated = await this.update(id, updates);
       console.log("[ITEM REPO] Item updated:", updated);

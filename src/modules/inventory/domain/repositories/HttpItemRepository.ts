@@ -5,7 +5,7 @@ import { ItemRepository } from "../../domain/repositories/ItemRepository";
 export class HttpItemRepository implements ItemRepository {
   constructor(private readonly baseUrl: string) {}
 
-  async findById(id: number): Promise<Item | null> {
+  async findById(id: string): Promise<Item | null> {
     try {
       const res = await axios.get<Item>(`${this.baseUrl}/items/${id}`);
       return res.data;
@@ -19,7 +19,7 @@ export class HttpItemRepository implements ItemRepository {
     return res.data;
   }
 
-  async findByUserId(userId: number): Promise<Item[]> {
+  async findByUserId(userId: string): Promise<Item[]> {
     const res = await axios.get<Item[]>(`${this.baseUrl}/items?userId=${userId}`);
     return res.data;
   }
@@ -30,14 +30,14 @@ export class HttpItemRepository implements ItemRepository {
   //   return res.data;
   // }
   // Actualiza propiedades arbitrarias del item
-async updateItem(id: number, data: Partial<Item>): Promise<Item> {
+async updateItem(id: string, data: Partial<Item>): Promise<Item> {
   const res = await axios.patch<Item>(`${this.baseUrl}/items/${id}`, data);
   return res.data;
 }
 
 
   // Actualiza solo disponibilidad usando PATCH
-  async updateAvailability(id: number, isAvailable: boolean): Promise<Item> {
+  async updateAvailability(id: string, isAvailable: boolean): Promise<Item> {
     const res = await axios.patch<Item>(`${this.baseUrl}/items/${id}/availability`, { isAvailable });
     return res.data;
   }

@@ -1,12 +1,12 @@
 export interface BuyNowInputDto {
-  auctionId: number;
-  buyerId: number;     // comprador
+  auctionId: string;
+  buyerId: string;     // comprador
 }
 
 export interface BuyNowOutputDto {
-  auctionId: number;
+  auctionId: string;
   soldPrice: number;   // = buyNowPrice
-  buyerId: number;
+  buyerId: string;
   soldAt: string;      // ISO
   status: "SOLD";
 }

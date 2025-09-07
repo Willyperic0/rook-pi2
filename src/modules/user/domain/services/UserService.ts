@@ -1,35 +1,43 @@
 import { User } from "../models/User";
 import axios from "axios";
+import { IUserService } from "./IUserService";
+
 /**
  * Servicio de Usuarios
  */
-export class UserService {
-    constructor(private baseUrl: string) {}
-    // Validar si un usuario tiene suficientes créditos
-    static hasEnoughCredits(user: User, amount: number): boolean {
-        return user.credits >= amount;
-    }
+export class UserService implements IUserService {
+  constructor(private baseUrl: string) {}
 
-    // Descontar créditos a un usuario
-    static deductCredits(user: User, amount: number): void {
-        if (!this.hasEnoughCredits(user, amount)) {
-            throw new Error("El usuario no tiene créditos suficientes.");
-        }
-        user.credits -= amount;
-    }
+  // Validar si un usuario tiene suficientes créditos
+  hasEnoughCredits(user: User, amount: number): boolean {
+    return user.getCredits() >= amount;
+  }
 
-    // Añadir créditos (ej: recarga o devolución)
-    static addCredits(user: User, amount: number): void {
-        user.credits += amount;
+  // Descontar créditos a un usuario
+  deductCredits(user: User, amount: number): void {
+    if (!this.hasEnoughCredits(user, amount)) {
+      throw new Error("El usuario no tiene créditos suficientes.");
     }
-    async findByToken(token: string) {
+    user.deductCredits(amount);
+  }
+
+  // Añadir créditos (ej: recarga o devolución)
+  addCredits(user: User, amount: number): void {
+    user.addCredits(amount);
+  }
+
+  // Métodos que ya eran de instancia
+  async findByToken(token: string): Promise<User> {
     const res = await axios.get(`${this.baseUrl}/me`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return res.data;
+    const data = res.data;
+    return new User(data.id, data.username, data.credits);
   }
-  async updateCredits(id: string, credits: number) {
+
+  async updateCredits(id: string, credits: number): Promise<User> {
     const res = await axios.put(`${this.baseUrl}/users/${id}/credits`, { credits });
-    return res.data;
+    const data = res.data;
+    return new User(data.id, data.username, data.credits);
   }
 }

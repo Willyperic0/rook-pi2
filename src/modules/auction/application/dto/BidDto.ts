@@ -1,7 +1,7 @@
 export interface BidDto {
-  id: number;
-  auctionId: number;
-  userId: number;
+  id: string;
+  auctionId: string;
+  userId: string;
   amount: number;
   timestamp: string; // ISO
 }

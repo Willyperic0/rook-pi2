@@ -1,7 +1,8 @@
 import * as dotenv from "dotenv";
+import { resolve } from "path";
 
-// Cargar variables de entorno desde el .env
-dotenv.config();
+// Cargar variables desde api/config/.env
+dotenv.config({ path: resolve(__dirname, ".env") });
 
 export const env = {
   port: process.env["PORT"] ?? "3000",

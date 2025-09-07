@@ -2,8 +2,8 @@
 import type { ItemType, HeroType } from "../../domain/models/Item";
 
 export interface ItemDto {
-  id: number;
-  userId: number;
+  id: string;
+  userId: string;
   name: string;
   description: string;
   type: ItemType;
@@ -13,6 +13,6 @@ export interface ItemDto {
 }
 
 export interface UserItemsDto {
-  userId: number;
+  userId: string;
   items: ItemDto[];
 }
