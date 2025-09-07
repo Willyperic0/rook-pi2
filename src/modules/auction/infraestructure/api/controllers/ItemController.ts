@@ -1,9 +1,9 @@
 // src/interfaces/http/controllers/ItemController.ts
 import { Request, Response } from "express";
-import { ItemService } from "../../../../inventory/domain/services/ItemService";
+import { IItemService } from "../../../../inventory/domain/services/IItemService";
 
 export class ItemController {
-  constructor(private readonly itemService: ItemService) {}
+  constructor(private readonly itemService: IItemService) {}
 
   // Obtener un item por id
   getItem = async (req: Request, res: Response): Promise<Response> => {

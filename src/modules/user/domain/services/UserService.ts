@@ -1,12 +1,12 @@
+import { UserRepository } from "../repositories/UserRepository";
 import { User } from "../models/User";
-import axios from "axios";
 import { IUserService } from "./IUserService";
 
 /**
  * Servicio de Usuarios
  */
 export class UserService implements IUserService {
-  constructor(private baseUrl: string) {}
+  constructor(private readonly userRepo: UserRepository) {}
 
   // Validar si un usuario tiene suficientes créditos
   hasEnoughCredits(user: User, amount: number): boolean {
@@ -26,18 +26,21 @@ export class UserService implements IUserService {
     user.addCredits(amount);
   }
 
-  // Métodos que ya eran de instancia
-  async findByToken(token: string): Promise<User> {
-    const res = await axios.get(`${this.baseUrl}/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = res.data;
-    return new User(data.id, data.username, data.credits);
+  // Métodos que interactúan con el repositorio
+  async findById(id: string): Promise<User | null> {
+    return this.userRepo.findById(id);
   }
 
-  async updateCredits(id: string, credits: number): Promise<User> {
-    const res = await axios.put(`${this.baseUrl}/users/${id}/credits`, { credits });
-    const data = res.data;
-    return new User(data.id, data.username, data.credits);
+  async findByToken(token: string): Promise<User | null> {
+    return this.userRepo.findByToken(token);
+  }
+
+  async updateCredits(id: string, credits: number): Promise<User | null> {
+    return this.userRepo.updateCredits(id, credits);
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    // Si tu repositorio soporta listar todos los usuarios
+    return this.userRepo.findAll ? this.userRepo.findAll() : [];
   }
 }

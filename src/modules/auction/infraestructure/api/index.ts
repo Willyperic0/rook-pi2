@@ -24,6 +24,7 @@ import { ItemService } from "../../../inventory/domain/services/ItemService";
 import { HttpUserRepository } from "../../../user/domain/repositories/HttpUserRepository";
 import { UserController } from "./controllers/UserController";
 import userRoutes from "./routes/UserRoutes";
+import { UserService } from "../../../user/domain/services/UserService";
 
 // ----------------------
 // Instancias únicas
@@ -35,11 +36,12 @@ const auctionRepo = new InMemoryAuctionRepository();
 // Services
 const auctionService = new AuctionService(auctionRepo, itemRepo, userRepo);
 const itemService = new ItemService(itemRepo);
+const userService = new UserService(userRepo); // HttpUserRepository ya implementa IUserService
 
 // Controllers
 const auctionController = new AuctionController(auctionService);
 const itemController = new ItemController(itemService);
-const userController = new UserController(userRepo);
+const userController = new UserController(userService);
 
 // Cargar los YAML desde /docs
 const docsPath = path.join(process.cwd(), "docs");
