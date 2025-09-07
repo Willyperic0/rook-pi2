@@ -1,30 +1,54 @@
+<!-- users/Rook---PI2/client/index.html -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Demo Subastas</title>
+
+  <!--
+    Demo UI mínima para probar el servicio de USERS / AUCTIONS vía HTTP + Socket.IO.
+    - No es parte del frontend de producción; es un cliente de prueba/manual.
+    - Evita lógica de negocio: solo emite/consume eventos REST/WS y pinta resultados.
+    - Mantenerlo simple para facilitar diagnósticos en la VM.
+
+    Nota: usamos la versión ESM del cliente de Socket.IO desde CDN para no requerir build aquí.
+  -->
   <script type="module">
     import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
+
+    /** Conexión por defecto (same-origin). */
     const socket = io();
 
-    // Helpers
+    // --------------------- Helpers de log ---------------------
+    /**
+     * Agrega una línea al panel de logs.
+     * @param {string} text Mensaje a imprimir
+     */
     const log = (text) => {
       const li = document.createElement("li");
       li.textContent = text;
       document.getElementById("log").appendChild(li);
     };
 
-    // === Notificaciones en tiempo real ===
+    // ---------------- Notificaciones en tiempo real -----------
     socket.on("notification", (n) => {
+      // { message: string, userId: string }
       log(`[notif] ${n.message} (to: ${n.userId})`);
     });
 
+    // --------------------- Estado local detalle ----------------
+    /** Último ID de subasta creada/consultada (para autocompletar formularios). */
     let lastAuctionId = '';
-  let detailTimer = null; // servidor (ya no usado para polling)
-  let detailUiTimer = null; // timer local para countdown UI
-  let detailEndsAtIso = null;
+    /** Timer para el contador visual (no contacta al servidor). */
+    let detailUiTimer = null;
+    /** Fecha de cierre ISO de la subasta en detalle (endsAt). */
+    let detailEndsAtIso = null;
 
+    /**
+     * Setea el último auctionId en todos los inputs relevantes.
+     * @param {string|number} id
+     */
     const setLastAuctionId = (id) => {
       lastAuctionId = id;
       document.getElementById("bid-auction").value = id;
@@ -32,6 +56,9 @@
       document.getElementById("detail-auction").value = id;
     };
 
+    /**
+     * Inicia/renueva el contador visual de horas restantes (sin pedir al backend).
+     */
     function startDetailCountdown() {
       if (detailUiTimer) { clearInterval(detailUiTimer); detailUiTimer = null; }
       if (!detailEndsAtIso) return;
@@ -45,20 +72,27 @@
       detailUiTimer = setInterval(update, 60_000);
     }
 
+    /**
+     * Trae y renderiza el detalle de una subasta, incluyendo reviews.
+     * @param {string} userId Usuario que consulta (autorización simple por header)
+     * @param {string|number} auctionId ID de la subasta
+     */
     async function fetchAndRenderDetail(userId, auctionId) {
       const resp = await fetch(`/api/auctions/${auctionId}`, { headers: { "x-user-id": userId } });
       const data = await resp.json();
       if (!resp.ok) { log(`Error: ${data.error}`); return; }
+
       const out = document.getElementById("detail-out");
       const reviews = Array.isArray(data.reviews) ? data.reviews : [];
       const reviewsHtml = reviews.length
-        ? `<ul style=\"margin:6px 0;padding-left:18px\">${reviews.map(r => `
+        ? `<ul style="margin:6px 0;padding-left:18px">${reviews.map(r => `
             <li>
               <b>${'★'.repeat(Math.max(0, Math.min(5, Number(r.rating) || 0)))}</b>
-              <span style=\"margin-left:6px\">${r.comment ?? ''}</span>
-              <small style=\"color:#666;margin-left:6px\">por ${r.userId}</small>
+              <span style="margin-left:6px">${r.comment ?? ''}</span>
+              <small style="color:#666;margin-left:6px">por ${r.userId}</small>
             </li>`).join('')}</ul>`
-        : `<div style=\"color:#666\"><i>Sin valoraciones aún.</i></div>`;
+        : `<div style="color:#666"><i>Sin valoraciones aún.</i></div>`;
+
       out.innerHTML = `
         <div><b>ID:</b> ${auctionId}</div>
         <div><b>Estado:</b> ${data.auction.status}</div>
@@ -66,7 +100,7 @@
         <div><b>Cuenta regresiva:</b> <span id="detail-countdown">${data.timeRemainingHours} h</span></div>
         <div><b>Precio actual:</b> ${data.currentBid}</div>
         <div><b>BuyNow:</b> ${data.auction.buyNowPrice ?? "-"}</div>
-        <div style=\"margin-top:8px\"><b>Valoraciones (${reviews.length}):</b></div>
+        <div style="margin-top:8px"><b>Valoraciones (${reviews.length}):</b></div>
         ${reviewsHtml}
       `;
 
@@ -75,7 +109,12 @@
       startDetailCountdown();
     }
 
-    // === Crear subasta ===
+    // --------------------- Handlers: Crear subasta ---------------------
+    /**
+     * POST /api/auctions
+     * Body: { itemId, startingPrice, durationHours, buyNowPrice? }
+     * Header: x-user-id
+     */
     document.getElementById("create-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const userId = document.getElementById("create-user").value.trim();
@@ -107,7 +146,12 @@
       }
     });
 
-    // === Pujar ===
+    // --------------------- Handlers: Pujar ---------------------
+    /**
+     * POST /api/auctions/:id/bids
+     * Body: { amount }
+     * Header: x-user-id
+     */
     document.getElementById("bid-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const userId = document.getElementById("bid-user").value.trim();
@@ -127,7 +171,11 @@
       log(resp.ok ? `Puja OK en ${auctionId}: ${amount}` : `Error: ${data.error}`);
     });
 
-    // === Buy-now ===
+    // --------------------- Handlers: Buy-now ---------------------
+    /**
+     * POST /api/auctions/:id/buy-now
+     * Header: x-user-id
+     */
     document.getElementById("bn-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const userId = document.getElementById("bn-user").value.trim();
@@ -142,7 +190,11 @@
       log(resp.ok ? `Buy-now OK en ${auctionId}` : `Error: ${data.error}`);
     });
 
-    // === Detalle de subasta (muestra duración y countdown redondeado) ===
+    // --------------------- Handlers: Detalle ---------------------
+    /**
+     * GET /api/auctions/:id (con info agregada para la demo)
+     * Header: x-user-id
+     */
     document.getElementById("detail-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const userId = document.getElementById("detail-user").value.trim();
@@ -151,9 +203,11 @@
       log(`Detalle mostrado para ${auctionId}`);
     });
 
-  // Eliminado el auto-refresh de servidor; el contador ahora es local con endsAt
+    // Eliminado el auto-refresh de servidor; el contador ahora es local con endsAt
   </script>
+
   <style>
+    /* users/Rook---PI2/client/index.html (estilos locales de la demo) */
     body{font-family:system-ui,Segoe UI,Roboto,Ubuntu;margin:0;padding:20px;display:flex;gap:20px}
     section{border:1px solid #ccc;border-radius:8px;padding:12px;flex:1;min-width:280px}
     h2{margin-top:0}
@@ -166,7 +220,7 @@
   </style>
 </head>
 <body>
-  <!-- Crear -->
+  <!-- ======== Crear subasta ======== -->
   <section>
     <h2>Crear subasta</h2>
     <form id="create-form">
@@ -182,7 +236,7 @@
     </form>
   </section>
 
-  <!-- Pujar -->
+  <!-- ======== Pujar ======== -->
   <section>
     <h2>Pujar</h2>
     <form id="bid-form">
@@ -193,7 +247,7 @@
     </form>
   </section>
 
-  <!-- Buy-now -->
+  <!-- ======== Buy-now ======== -->
   <section>
     <h2>Buy-now</h2>
     <form id="bn-form">
@@ -203,13 +257,13 @@
     </form>
   </section>
 
-  <!-- Log -->
+  <!-- ======== Log ======== -->
   <section>
     <h2>Log</h2>
     <ul id="log"></ul>
   </section>
 
-  <!-- Detalle -->
+  <!-- ======== Detalle ======== -->
   <section>
     <h2>Detalle de subasta</h2>
     <form id="detail-form">
