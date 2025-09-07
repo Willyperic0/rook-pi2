@@ -1,0 +1,242 @@
+/* client/RookClient/frontend/src/index.css */
+
+/* 
+  =============================
+  Estilos base del proyecto
+  =============================
+  Este archivo se carga en main.tsx y aplica a toda la app.
+  Usa Tailwind como motor principal; aquí solo definimos resets,
+  tipografías y algunos estilos globales para complementar.
+*/
+
+/* Tailwind: directivas base */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  Fuente global y colores base
+*/
+:root {
+  --color-primary: #2563eb;   /* azul-600 */
+  --color-secondary: #16a34a; /* verde-600 */
+  --color-bg: #f9fafb;        /* gris-50 */
+  --color-text: #1f2937;      /* gris-800 */
+
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  line-height: 1.5;
+}
+
+/* Reset ligero */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Títulos */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* Enlaces */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+}
+a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* Botones globales (fallback) */
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--color-primary);
+  color: white;
+  font-weight: 500;
+  transition: background-color 0.2s ease-in-out;
+}
+button:hover { background-color: #1d4ed8; }
+
+/* Contenedor genérico */
+.card { @apply bg-white shadow-md rounded-lg p-4 mb-4; }
+
+/* Modal */
+.modal { @apply fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50; }
+.modal > div { @apply bg-white rounded-lg shadow-lg p-6 max-w-lg w-full; }
+
+/* Animación fade-in */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.fade-in { animation: fade-in 0.3s ease-in-out; }
+
+/* =========================================================
+   Layout con grid: Header (arriba), SidebarTop (botones),
+   SidebarBottom (filtros/formulario) y Content (derecha).
+   ========================================================= */
+
+#root > .p-4 {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "sidebarTop content"
+    "sidebarBottom content";
+  grid-template-columns: 270px 1fr;
+  gap: 15px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* HEADER = primer h1 */
+#root > .p-4 > h1 {
+  grid-area: header;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* BOTONERA (2º hijo) */
+#root > .p-4 > :nth-child(2) {
+  grid-area: sidebarTop;
+  position: sticky;
+  top: 4.25rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+#root > .p-4 > :nth-child(2) button {
+  width: auto;
+  padding: 0.45rem 0.8rem;
+}
+
+/* FILTROS / FORMULARIO (3º hijo) */
+#root > .p-4 > :nth-child(3) {
+  grid-area: sidebarBottom;
+  position: static;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+/* Campos dentro del 3º bloque */
+#root > .p-4 > :nth-child(3) input,
+#root > .p-4 > :nth-child(3) select {
+  width: auto;
+  min-width: 180px;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 0.45rem 0.6rem;
+  background: #fff;
+}
+#root > .p-4 > :nth-child(3) input[type="text"],
+#root > .p-4 > :nth-child(3) input:not([type]) {
+  min-width: 240px; /* para "Nombre (mín 4 caracteres)" */
+}
+#root > .p-4 > :nth-child(3) button {
+  width: auto;
+  padding: 0.5rem 0.9rem;
+}
+#root > .p-4 > :nth-child(3) label {
+  margin-right: 2px;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* CONTENT (4º hijo en adelante) */
+#root > .p-4 > :nth-child(n + 4) {
+  grid-area: content;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  #root > .p-4 {
+    grid-template-areas:
+      "header"
+      "sidebarTop"
+      "sidebarBottom"
+      "content";
+    grid-template-columns: 1fr;
+  }
+  #root > .p-4 > :nth-child(2) { position: static; }
+}
+
+/* =========================================================
+   Tarjetas de subastas (content)
+   ========================================================= */
+
+#root > .p-4 > :nth-child(n + 4) > div.border {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items: start;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 12px;
+}
+#root > .p-4 > :nth-child(n + 4) > div.border img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+}
+#root > .p-4 > :nth-child(n + 4) > div.border h2,
+#root > .p-4 > :nth-child(n + 4) > div.border h3 {
+  font-size: 1.125rem;
+  margin: 0 0 6px;
+}
+#root > .p-4 > :nth-child(n + 4) > div.border p:first-of-type {
+  color: #4b5563;
+  margin-bottom: 6px;
+}
+#root > .p-4 > :nth-child(n + 4) > div.border p:nth-of-type(2) {
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+#root > .p-4 > :nth-child(n + 4) > div.border p:nth-of-type(3) {
+  color: #374151;
+  font-weight: 600;
+}
+#root > .p-4 > :nth-child(n + 4) > div.border p:nth-of-type(4) {
+  margin-top: 4px;
+  color: #374151;
+}
+#root > .p-4 > :nth-child(n + 4) > div.border button {
+  margin-right: 6px;
+  margin-top: 6px;
+}
+@media (max-width: 640px) {
+  #root > .p-4 > :nth-child(n + 4) > div.border {
+    grid-template-columns: 1fr;
+  }
+}

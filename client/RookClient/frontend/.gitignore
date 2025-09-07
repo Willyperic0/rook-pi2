@@ -1,4 +1,6 @@
+# =========================
 # Logs
+# =========================
 logs
 *.log
 npm-debug.log*
@@ -7,18 +9,36 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# =========================
+# Dependencias / builds
+# =========================
+node_modules/
+dist/
+dist-ssr/
+build/
+
+# =========================
+# Configs locales
+# =========================
+.env
+.env.local
+.env.*.local
 *.local
 
-# Editor directories and files
+# =========================
+# Editor / IDE
+# =========================
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# =========================
+# Otros opcionales (puedes quitar si no aplican en tu flujo)
+# =========================
+coverage/
