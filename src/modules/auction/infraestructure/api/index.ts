@@ -4,6 +4,9 @@ import http from "http";
 import cors from "cors";
 import { initAuctionSocket, setAuctionServiceForSocket } from "../sockets/auctionSocket";
 import { env } from "../config/env";
+import swaggerUi from "swagger-ui-express";
+import YAML from "yamljs";
+import path from "path";
 
 // --- Auctions ---
 import auctionRoutes from "./routes/AuctionRoutes";
@@ -38,6 +41,31 @@ const auctionController = new AuctionController(auctionService);
 const itemController = new ItemController(itemService);
 const userController = new UserController(userRepo);
 
+// Cargar los YAML desde /docs
+const docsPath = path.join(process.cwd(), "docs");
+
+const generalDoc = YAML.load(path.join(docsPath, "General.yaml"));
+const auctionDoc = YAML.load(path.join(docsPath, "Auction.yaml"));
+const itemDoc = YAML.load(path.join(docsPath, "Item.yaml"));
+const userDoc = YAML.load(path.join(docsPath, "User.yaml"));
+
+// Combinar los documentos en uno solo
+const swaggerDocument = {
+  ...generalDoc,
+  paths: {
+    ...(auctionDoc.paths || {}),
+    ...(itemDoc.paths || {}),
+    ...(userDoc.paths || {}),
+  },
+  components: {
+    schemas: {
+      ...(auctionDoc.components?.schemas || {}),
+      ...(itemDoc.components?.schemas || {}),
+      ...(userDoc.components?.schemas || {}),
+    },
+  },
+};
+
 // ----------------------
 // Configuración Express
 // ----------------------
@@ -55,6 +83,10 @@ app.use(cors({
   credentials: true
 }));
 
+// Servir la documentación en /api/docs
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+console.log("Documentación Swagger disponible en /api/docs");
 app.use(express.json());
 
 // Rutas
