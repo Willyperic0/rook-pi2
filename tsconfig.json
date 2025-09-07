@@ -4,7 +4,6 @@
     "module": "nodeNext",
     "rootDir": "./src",
     "moduleResolution": "node16",
-    "typeRoots": ["node"],
     "resolveJsonModule": true,
     "outDir": "./build",
     "esModuleInterop": true,
@@ -29,8 +28,10 @@
     "noPropertyAccessFromIndexSignature": true,
     "allowUnusedLabels": true,
     "allowUnreachableCode": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node", "jest"],
+    "isolatedModules": true
   },
-  "include": ["src/**/*", "test/**/*"],
-  "exclude": ["node_modules","build"]
+  "include": ["src/**/*", "src/test/**/*"],
+  "exclude": ["node_modules", "build"]
 }
