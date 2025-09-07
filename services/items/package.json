@@ -6,7 +6,8 @@
     "dev": "ts-node-dev src/index.ts",
     "lint": "ts-standard",
     "start": "node build/index.js",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "build": "tsc -p tsconfig.json"
   },
   "keywords": [],
   "author": "",

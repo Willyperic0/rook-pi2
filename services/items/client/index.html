@@ -1,29 +1,38 @@
+<!-- services/items/client/index.html -->
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Demo Subastas</title>
+  <title>Demo Subastas — Items</title>
+
+  <!--
+    Demo mínima para probar rápido el servicio de items/auctions desde el navegador.
+    - No pertenece al frontend de producción; es un cliente de prueba/manual.
+    - Usa Socket.IO ESM desde CDN para escuchar notificaciones de ejemplo.
+    - Expone formularios simples para crear subasta, pujar, buy-now y ver detalle.
+  -->
   <script type="module">
     import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
     const socket = io();
 
-    // Helpers
+    /** Añade una línea al panel de logs. */
     const log = (text) => {
       const li = document.createElement("li");
       li.textContent = text;
       document.getElementById("log").appendChild(li);
     };
 
-    // === Notificaciones en tiempo real ===
+    // === Notificaciones (solo demostración) ===
     socket.on("notification", (n) => {
       log(`[notif] ${n.message} (to: ${n.userId})`);
     });
 
+    // Estado local para la vista de detalle (contador simple redondeado)
     let lastAuctionId = '';
-  let detailTimer = null; // servidor (ya no usado para polling)
-  let detailUiTimer = null; // timer local para countdown UI
-  let detailEndsAtIso = null;
+    let detailUiTimer = null;
+    let detailEndsAtIso = null;
 
     const setLastAuctionId = (id) => {
       lastAuctionId = id;
@@ -45,20 +54,23 @@
       detailUiTimer = setInterval(update, 60_000);
     }
 
+    /** Obtiene y renderiza el detalle de una subasta (incluye reviews si aplica). */
     async function fetchAndRenderDetail(userId, auctionId) {
       const resp = await fetch(`/api/auctions/${auctionId}`, { headers: { "x-user-id": userId } });
       const data = await resp.json();
       if (!resp.ok) { log(`Error: ${data.error}`); return; }
+
       const out = document.getElementById("detail-out");
       const reviews = Array.isArray(data.reviews) ? data.reviews : [];
       const reviewsHtml = reviews.length
-        ? `<ul style=\"margin:6px 0;padding-left:18px\">${reviews.map(r => `
+        ? `<ul style="margin:6px 0;padding-left:18px">${reviews.map(r => `
             <li>
               <b>${'★'.repeat(Math.max(0, Math.min(5, Number(r.rating) || 0)))}</b>
-              <span style=\"margin-left:6px\">${r.comment ?? ''}</span>
-              <small style=\"color:#666;margin-left:6px\">por ${r.userId}</small>
+              <span style="margin-left:6px">${r.comment ?? ''}</span>
+              <small style="color:#666;margin-left:6px">por ${r.userId}</small>
             </li>`).join('')}</ul>`
-        : `<div style=\"color:#666\"><i>Sin valoraciones aún.</i></div>`;
+        : `<div style="color:#666"><i>Sin valoraciones aún.</i></div>`;
+
       out.innerHTML = `
         <div><b>ID:</b> ${auctionId}</div>
         <div><b>Estado:</b> ${data.auction.status}</div>
@@ -66,11 +78,10 @@
         <div><b>Cuenta regresiva:</b> <span id="detail-countdown">${data.timeRemainingHours} h</span></div>
         <div><b>Precio actual:</b> ${data.currentBid}</div>
         <div><b>BuyNow:</b> ${data.auction.buyNowPrice ?? "-"}</div>
-        <div style=\"margin-top:8px\"><b>Valoraciones (${reviews.length}):</b></div>
+        <div style="margin-top:8px"><b>Valoraciones (${reviews.length}):</b></div>
         ${reviewsHtml}
       `;
 
-      // Guardar endsAt y activar contador local sin llamadas al servidor
       detailEndsAtIso = data.auction.endsAt;
       startDetailCountdown();
     }
@@ -98,7 +109,6 @@
         const id = data.auction.id;
         setLastAuctionId(id);
         log(`Subasta creada: ${id} (duración ${data.auction.durationHours ?? durationHours}h)`);
-        // mostrar detalle al crear
         const detailUser = document.getElementById("detail-user").value.trim() || userId;
         document.getElementById("detail-user").value = detailUser;
         await fetchAndRenderDetail(detailUser, id);
@@ -116,10 +126,7 @@
 
       const resp = await fetch(`/api/auctions/${auctionId}/bids`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-user-id": userId,
-        },
+        headers: { "Content-Type": "application/json", "x-user-id": userId },
         body: JSON.stringify({ amount }),
       });
 
@@ -142,7 +149,7 @@
       log(resp.ok ? `Buy-now OK en ${auctionId}` : `Error: ${data.error}`);
     });
 
-    // === Detalle de subasta (muestra duración y countdown redondeado) ===
+    // === Detalle ===
     document.getElementById("detail-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       const userId = document.getElementById("detail-user").value.trim();
@@ -150,10 +157,10 @@
       await fetchAndRenderDetail(userId, auctionId);
       log(`Detalle mostrado para ${auctionId}`);
     });
-
-  // Eliminado el auto-refresh de servidor; el contador ahora es local con endsAt
   </script>
+
   <style>
+    /* Estilos locales para la demo */
     body{font-family:system-ui,Segoe UI,Roboto,Ubuntu;margin:0;padding:20px;display:flex;gap:20px}
     section{border:1px solid #ccc;border-radius:8px;padding:12px;flex:1;min-width:280px}
     h2{margin-top:0}
