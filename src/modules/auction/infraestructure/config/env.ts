@@ -11,7 +11,7 @@ export const env = {
   userServiceUrl: process.env["USER_SERVICE_URL"] ?? "http://localhost:4000",
   itemServiceUrl: process.env["ITEM_SERVICE_URL"] ?? "http://localhost:3002",
 
-  corsOrigin: process.env["CORS_ORIGIN"]?.split(",") ?? ["http://localhost:5173"],
+  corsOrigin: process.env["CORS_ORIGIN"]?.split(",") ?? ["http://localhost:4200"],
 
   db: {
     host: process.env["DB_HOST"] ?? "localhost",
