@@ -12,4 +12,6 @@ export interface ItemRepository {
 
   // Actualizar cualquier campo de un item
   updateItem(id: string, data: Partial<Item>): Promise<Item>;
+  // Transferir item entre usuarios
+  transferItem(originUser: string, targetUser: string, itemName: string): Promise<string>;
 }

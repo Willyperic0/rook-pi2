@@ -155,7 +155,6 @@ export class AuctionService implements IAuctionService {
   const creator = await this.users.findByUsername!(auction.getItem().userId);
   if (!creator) throw new Error("Creator not found");
 
-  // 🔥 FIX: ahora sí auction.getItem().id existe
   const item = await this.items.findById(creator.getUsername(), auction.getItem().id);
   if (!item) throw new Error("Item not found");
 
@@ -163,10 +162,8 @@ export class AuctionService implements IAuctionService {
     const winner = await this.users.findByUsername!(winnerUsername);
     if (!winner) throw new Error("Winner not found");
 
-    // Transferir item
-    item.userId = winner.getUsername();
-    item.isAvailable = true;
-    await this.items.updateItem(item.id, { userId: winner.getUsername(), isAvailable: true });
+    // 🔥 Transferir item usando el método del repo
+    await this.items.transferItem(creator.getUsername(), winner.getUsername(), item.name);
 
     // Pagar al creador
     await this.users.updateCredits(creator.getId(), creator.getCredits() + (auction.getBuyNowPrice() || 0));
@@ -179,13 +176,14 @@ export class AuctionService implements IAuctionService {
       }
     }
   } else {
-    item.isAvailable = true;
+    // Si no hay ganador, item vuelve disponible
     await this.items.updateItem(item.id, { isAvailable: true });
   }
 
   auction.setStatus("CLOSED");
   await this.auctions.save(auction);
 }
+
 
   async getPurchasedAuctions(username: string): Promise<Auction[]> {
     return this.auctions.findClosedByBuyer(username);
