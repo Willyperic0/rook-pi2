@@ -26,10 +26,16 @@ export default function auctionRoutes(auctionController: AuctionController) {
   router.get("/me/:username", auctionController.getCurrentUser);
 
   // Subastas compradas por usuario
-  router.get("/history/purchased/:username", auctionController.getPurchasedAuctions);
+  router.get(
+  "/history/sold/:username",
+  auctionController.getSoldHistory.bind(auctionController)
+);
 
   // Subastas vendidas por usuario
-  router.get("/history/sold/:username", auctionController.getSoldAuctions);
+  router.get(
+  "/history/purchased/:username",
+  auctionController.getPurchasedHistory.bind(auctionController)
+);
 
   return router;
 }

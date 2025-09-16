@@ -149,42 +149,43 @@ export class AuctionService implements IAuctionService {
   }
 
   async finalizeAuction(auctionId: string, winnerUsername?: string) {
-    const auction = await this.auctions.findById(auctionId);
-    if (!auction) throw new Error("Auction not found");
+  const auction = await this.auctions.findById(auctionId);
+  if (!auction) throw new Error("Auction not found");
 
-    const creator = await this.users.findByUsername!(auction.getItem().userId);
-    if (!creator) throw new Error("Creator not found");
+  const creator = await this.users.findByUsername!(auction.getItem().userId);
+  if (!creator) throw new Error("Creator not found");
 
-    const item = await this.items.findById(creator.getUsername(), auction.getItem().id);
-    if (!item) throw new Error("Item not found");
+  // 🔥 FIX: ahora sí auction.getItem().id existe
+  const item = await this.items.findById(creator.getUsername(), auction.getItem().id);
+  if (!item) throw new Error("Item not found");
 
-    if (winnerUsername) {
-      const winner = await this.users.findByUsername!(winnerUsername);
-      if (!winner) throw new Error("Winner not found");
+  if (winnerUsername) {
+    const winner = await this.users.findByUsername!(winnerUsername);
+    if (!winner) throw new Error("Winner not found");
 
-      // Transferir item
-      item.userId = winner.getUsername(); // 🔥 username
-      item.isAvailable = true;
-      await this.items.updateItem(item.id, { userId: winner.getUsername(), isAvailable: true });
+    // Transferir item
+    item.userId = winner.getUsername();
+    item.isAvailable = true;
+    await this.items.updateItem(item.id, { userId: winner.getUsername(), isAvailable: true });
 
-      // Pagar al creador
-      await this.users.updateCredits(creator.getId(), creator.getCredits() + (auction.getBuyNowPrice() || 0));
+    // Pagar al creador
+    await this.users.updateCredits(creator.getId(), creator.getCredits() + (auction.getBuyNowPrice() || 0));
 
-      // Devolver créditos a los perdedores
-      for (const bid of auction.getBids()) {
-        if (bid.userId !== winner.getUsername()) { // 🔥 comparar con username
-          const user = await this.users.findByUsername!(bid.userId);
-          if (user) await this.users.updateCredits(user.getId(), user.getCredits() + bid.amount);
-        }
+    // Devolver créditos a los perdedores
+    for (const bid of auction.getBids()) {
+      if (bid.userId !== winner.getUsername()) {
+        const user = await this.users.findByUsername!(bid.userId);
+        if (user) await this.users.updateCredits(user.getId(), user.getCredits() + bid.amount);
       }
-    } else {
-      item.isAvailable = true;
-      await this.items.updateItem(item.id, { isAvailable: true });
     }
-
-    auction.setStatus("CLOSED");
-    await this.auctions.save(auction);
+  } else {
+    item.isAvailable = true;
+    await this.items.updateItem(item.id, { isAvailable: true });
   }
+
+  auction.setStatus("CLOSED");
+  await this.auctions.save(auction);
+}
 
   async getPurchasedAuctions(username: string): Promise<Auction[]> {
     return this.auctions.findClosedByBuyer(username);

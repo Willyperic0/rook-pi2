@@ -91,29 +91,41 @@ export class AuctionController {
     }
   };
 
-  getPurchasedAuctions = async (req: Request, res: Response) => {
+getPurchasedHistory = async (req: Request, res: Response): Promise<void> => {
     try {
-      const username = req.body.username?.trim();
-      if (!username) return res.status(400).json({ error: "Username no proporcionado" });
-
-      const auctions = await this.auctionService.getPurchasedAuctions(username);
-      return res.json({ data: auctions.map(a => AuctionMapper.toDto(a)) });
-    } catch (err: any) {
-      return res.status(500).json({ error: err.message });
+      const { username } = req.params;
+      if (!username) {
+        res.status(400).json({ error: "Username requerido" });
+        return;
+      }
+      console.log("[getPurchasedHistory] username:", username);
+      const history = await this.auctionService.getPurchasedAuctions(username);
+      res.json(history);
+    } catch (err) {
+      console.error("[getPurchasedHistory] Error:", err);
+      res.status(500).json({ error: "Error al obtener historial de compras" });
     }
   };
 
-  getSoldAuctions = async (req: Request, res: Response) => {
+  getSoldHistory = async (req: Request, res: Response): Promise<void> => {
     try {
-      const username = req.body.username?.trim();
-      if (!username) return res.status(400).json({ error: "Username no proporcionado" });
-
-      const auctions = await this.auctionService.getSoldAuctions(username);
-      return res.json({ data: auctions.map(a => AuctionMapper.toDto(a)) });
-    } catch (err: any) {
-      return res.status(500).json({ error: err.message });
+      const { username } = req.params;
+      if (!username) {
+        res.status(400).json({ error: "Username requerido" });
+        return;
+      }
+      console.log("[getSoldHistory] username:", username);
+      const history = await this.auctionService.getSoldAuctions(username);
+      res.json(history);
+    } catch (err) {
+      console.error("[getSoldHistory] Error:", err);
+      res.status(500).json({ error: "Error al obtener historial de ventas" });
     }
   };
+
+
+
+
 
   getCurrentUser = async (req: Request, res: Response): Promise<Response> => {
     try {
