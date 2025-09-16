@@ -5,7 +5,6 @@ import { AuctionMapper } from "../../../application/mappers/AuctionMapper";
 export class AuctionController {
   constructor(private readonly auctionService: IAuctionService) {}
 
-  // Crear subasta
   createAuction = async (req: Request, res: Response) => {
     try {
       const username = req.body.username?.trim();
@@ -18,7 +17,6 @@ export class AuctionController {
     }
   };
 
-  // Obtener subasta por id
   getAuction = async (req: Request, res: Response): Promise<Response> => {
     try {
       const auctionId = req.params["id"];
@@ -33,18 +31,15 @@ export class AuctionController {
     }
   };
 
-  // Listar subastas abiertas
   listAuctions = async (_: Request, res: Response): Promise<Response> => {
-  try {
-    const auctions = await this.auctionService.listOpenAuctions() || [];
-    return res.json({ data: auctions.map(a => AuctionMapper.toDto(a)) });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
-  }
-};
+    try {
+      const auctions = await this.auctionService.listOpenAuctions() || [];
+      return res.json({ data: auctions.map(a => AuctionMapper.toDto(a)) });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  };
 
-
-  // Pujar en subasta
   placeBid = async (req: Request, res: Response): Promise<Response> => {
     try {
       const username = req.body.username?.trim();
@@ -63,7 +58,6 @@ export class AuctionController {
     }
   };
 
-  // Compra rápida
   buyNow = async (req: Request, res: Response) => {
     try {
       const username = req.body.username?.trim();
@@ -83,7 +77,6 @@ export class AuctionController {
     }
   };
 
-  // Obtener pujas de una subasta
   getBids = async (req: Request, res: Response) => {
     try {
       const auctionId = req.params["id"];
@@ -98,7 +91,6 @@ export class AuctionController {
     }
   };
 
-  // Subastas compradas
   getPurchasedAuctions = async (req: Request, res: Response) => {
     try {
       const username = req.body.username?.trim();
@@ -111,7 +103,6 @@ export class AuctionController {
     }
   };
 
-  // Subastas vendidas
   getSoldAuctions = async (req: Request, res: Response) => {
     try {
       const username = req.body.username?.trim();
@@ -124,7 +115,6 @@ export class AuctionController {
     }
   };
 
-  // Obtener usuario actual
   getCurrentUser = async (req: Request, res: Response): Promise<Response> => {
     try {
       const username = req.body.username?.trim();
@@ -139,4 +129,5 @@ export class AuctionController {
     }
   };
 }
+
 
