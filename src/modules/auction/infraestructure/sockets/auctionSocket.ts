@@ -128,3 +128,14 @@ export function emitTransactionCreated(transactionData: any) {
   if (!io) return;
   io.emit("TRANSACTION_CREATED", transactionData);
 }
+
+// Nuevo: emisión explícita cuando una subasta se cierra por expiración/finalización manual
+export async function emitAuctionClosed(auctionId: string) {
+  if (!io || !auctionService) return;
+  const auction = await auctionService.getAuctionById(auctionId);
+  if (!auction) return;
+  io.emit("AUCTION_CLOSED", { closedAuction: AuctionMapper.toDto(auction) });
+}
+
+// Getter para reutilizar instancia de IO desde otros módulos (ej: notificaciones)
+export function getIo(): Server | undefined { return io; }

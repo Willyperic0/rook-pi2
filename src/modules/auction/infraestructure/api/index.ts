@@ -1,8 +1,8 @@
 // src/modules/auction/infraestructure/api/index.ts
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import http from "http";
 import cors from "cors";
-import { initAuctionSocket, setAuctionServiceForSocket } from "../sockets/auctionSocket";
+import { initAuctionSocket, setAuctionServiceForSocket, getIo } from "../sockets/auctionSocket";
 import { env } from "../config/env";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
@@ -23,8 +23,12 @@ import { ItemService } from "../../../inventory/domain/services/ItemService";
 // --- Users ---
 import { HttpUserRepository } from "../../../user/domain/repositories/HttpUserRepository";
 import { UserController } from "./controllers/UserController";
-import userRoutes from "./routes/UserRoutes";
+import userRoutes from "./routes/userRoutes";
 import { UserService } from "../../../user/domain/services/UserService";
+
+// --- Notifications ---
+import { buildNotificationModule } from "../../../notifications/infraestructure";
+import { registerAuctionWinnerListener } from "../../../notifications/infraestructure/sockets/NotificationSockets";
 
 // ----------------------
 // Instancias únicas
@@ -73,7 +77,7 @@ const swaggerDocument = {
 // ----------------------
 const app = express();
 
-app.use((req, _res, next) => {
+app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log("[DEBUG] Method:", req.method, "URL:", req.url);
   next();
 });
@@ -88,11 +92,18 @@ app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use(express.json());
 
 // ----------------------
+// Módulo Notificaciones
+// ----------------------
+const notificationModule = buildNotificationModule();
+
+// ----------------------
 // Rutas
 // ----------------------
 app.use(env.apiPrefix + "/auctions", auctionRoutes(auctionController));
 app.use(env.apiPrefix + "/items", itemRoutes(itemController));
 app.use(env.apiPrefix + "/users", userRoutes(userController));
+// Notificaciones -> /api/notifications
+app.use(env.apiPrefix, notificationModule.router);
 
 // ----------------------
 // Server HTTP + Sockets
@@ -101,6 +112,11 @@ const server = http.createServer(app);
 
 setAuctionServiceForSocket(auctionService);
 initAuctionSocket(server);
+// Registrar listener para notificar ganador cuando se emita AUCTION_CLOSED
+const io = getIo();
+if (io) {
+  registerAuctionWinnerListener(io, notificationModule.notifyAuctionWinnerUseCase);
+}
 
 // ----------------------
 // Levantar servidor

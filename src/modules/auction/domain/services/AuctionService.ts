@@ -7,7 +7,7 @@ import { Bid } from "../../domain/models/Bid";
 import { UserRepository } from "../../../user/domain/repositories/UserRepository";
 import { IAuctionService } from "./IAuctionService";
 // Sockets
-import { emitBidUpdate, emitBuyNow, emitNewAuction } from "../../infraestructure/sockets/auctionSocket";
+import { emitBidUpdate, emitBuyNow, emitNewAuction, emitAuctionClosed } from "../../infraestructure/sockets/auctionSocket";
 import { AuctionStatus } from "../models/AuctionStatus";
 
 export class AuctionService implements IAuctionService {
@@ -182,6 +182,8 @@ export class AuctionService implements IAuctionService {
 
   auction.setStatus("CLOSED");
   await this.auctions.save(auction);
+  // Emitir evento de cierre para que otros módulos (notificaciones) reaccionen
+  await emitAuctionClosed(auctionId);
 }
 
 
