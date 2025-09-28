@@ -25,7 +25,7 @@ export class ItemController {
       if (!username) return res.status(400).json({ error: "username no proporcionado" });
       if (!itemId) return res.status(400).json({ error: "id no proporcionado" });
 
-      const item = await this.itemService.getItemById(username, itemId);
+      const item = await this.itemService.getItemById(username, itemId, req.query["type"] as any);
       if (!item) return res.status(404).json({ error: "Item not found" });
 
       return res.json(item);

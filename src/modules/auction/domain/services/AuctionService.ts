@@ -21,8 +21,10 @@ export class AuctionService implements IAuctionService {
   async createAuction(input: CreateAuctionInputDTO, username: string): Promise<CreateAuctionOutputDto> {
     const user = await this.users.findByUsername!(username);
     if (!user) throw new Error("Usuario no encontrado");
+    if (!input.itemType) throw new Error("Item type no proporcionado");
+    const item = await this.items.findById(username, input.itemId, input.itemType as any);
+    if (!item) throw new Error("Item not found");
 
-    const item = await this.items.findById(username, input.itemId);
     if (!item) throw new Error("Item not found");
 
     if (item.userId !== username) throw new Error("El item no pertenece al usuario");
@@ -36,7 +38,7 @@ export class AuctionService implements IAuctionService {
     await this.users.updateCredits(user.getId(), user.getCredits() - creditCost);
 
     item.isAvailable = false;
-    await this.items.updateAvailability(item.id, false);
+    await this.items.updateAvailability(item.id, false, item.type);
 
     const auctionInput = {
       id: Date.now().toString(),
@@ -155,7 +157,7 @@ export class AuctionService implements IAuctionService {
   const creator = await this.users.findByUsername!(auction.getItem().userId);
   if (!creator) throw new Error("Creator not found");
 
-  const item = await this.items.findById(creator.getUsername(), auction.getItem().id);
+  const item = await this.items.findById(creator.getUsername(), auction.getItem().id, auction.getItem().type);
   if (!item) throw new Error("Item not found");
 
   if (winnerUsername) {

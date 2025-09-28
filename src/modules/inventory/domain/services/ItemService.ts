@@ -1,6 +1,6 @@
 // src/inventory/domain/services/ItemService.ts
 import { ItemRepository } from "../repositories/ItemRepository";
-import { Item } from "../models/Item";
+import { Item, ItemType } from "../models/Item";
 import { IItemService } from "./IItemService";
 
 export class ItemService implements IItemService {
@@ -11,13 +11,18 @@ export class ItemService implements IItemService {
     return this.itemRepo.findByUserId(username);
   }
 
-  // Ahora se requiere username y itemId
-  async getItemById(username: string, itemId: string): Promise<Item | null> {
-    return this.itemRepo.findById(username, itemId);
+  // Ahora se requiere username, itemId y type
+  async getItemById(username: string, itemId: string, type: ItemType): Promise<Item | null> {
+    return this.itemRepo.findById(username, itemId, type);
   }
 
   // Método consistente para obtener todos los items de un usuario
   async getItemsByUsername(username: string): Promise<Item[]> {
     return this.itemRepo.findByUserId(username);
+  }
+
+  // Actualizar disponibilidad de un item
+  async setItemAvailability(itemId: string, type: ItemType, isAvailable: boolean): Promise<Item> {
+    return this.itemRepo.updateAvailability(itemId, isAvailable, type);
   }
 }

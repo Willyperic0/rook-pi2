@@ -4,10 +4,6 @@ import http from "http";
 import cors from "cors";
 import { initAuctionSocket, setAuctionServiceForSocket } from "../sockets/auctionSocket";
 import { env } from "../config/env";
-import swaggerUi from "swagger-ui-express";
-import YAML from "yamljs";
-import path from "path";
-
 // --- Auctions ---
 import auctionRoutes from "./routes/AuctionRoutes";
 import { AuctionController } from "./controllers/AuctionController";
@@ -44,31 +40,6 @@ const itemController = new ItemController(itemService);
 const userController = new UserController(userService);
 
 // ----------------------
-// Swagger / Docs
-// ----------------------
-const docsPath = path.join(process.cwd(), "docs");
-const generalDoc = YAML.load(path.join(docsPath, "General.yaml"));
-const auctionDoc = YAML.load(path.join(docsPath, "Auction.yaml"));
-const itemDoc = YAML.load(path.join(docsPath, "Item.yaml"));
-const userDoc = YAML.load(path.join(docsPath, "User.yaml"));
-
-const swaggerDocument = {
-  ...generalDoc,
-  paths: {
-    ...(auctionDoc.paths || {}),
-    ...(itemDoc.paths || {}),
-    ...(userDoc.paths || {}),
-  },
-  components: {
-    schemas: {
-      ...(auctionDoc.components?.schemas || {}),
-      ...(itemDoc.components?.schemas || {}),
-      ...(userDoc.components?.schemas || {}),
-    },
-  },
-};
-
-// ----------------------
 // Configuración Express
 // ----------------------
 const app = express();
@@ -79,12 +50,13 @@ app.use((req, _res, next) => {
 });
 
 app.use(cors({
-  origin: env.corsOrigin,
+  origin: true,  // permite cualquier origen
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
 
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+
 app.use(express.json());
 
 // ----------------------
