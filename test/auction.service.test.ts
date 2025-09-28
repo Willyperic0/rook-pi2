@@ -10,6 +10,7 @@ jest.mock("../src/modules/auction/infraestructure/sockets/auctionSocket", () => 
   emitBidUpdate: jest.fn(),
   emitBuyNow: jest.fn(),
   emitNewAuction: jest.fn(),
+  emitAuctionClosed: jest.fn()
 }));
 
 // ========================
@@ -24,13 +25,14 @@ const mockAuctionRepo = {
 };
 
 const mockItemRepo = {
-  findById: jest.fn(),
+  findById: jest.fn(), // (ownerUsername, itemId)
   updateAvailability: jest.fn(),
   updateItem: jest.fn(),
+  transferItem: jest.fn()
 };
 
 const mockUserRepo = {
-  findByToken: jest.fn(),
+  findByUsername: jest.fn(),
   findById: jest.fn(),
   updateCredits: jest.fn(),
 };
@@ -39,17 +41,18 @@ const mockUserRepo = {
 // Mock de usuario válido
 // ========================
 class MockUser {
-  constructor(private id: string | number, private credits: number) {}
+  constructor(private id: string | number, private credits: number, private username?: string) {}
   getId() { return String(this.id); }
   getCredits() { return this.credits; }
   setCredits(c: number) { this.credits = c; }
+  getUsername() { return this.username ?? String(this.id); }
 }
 
 describe("AuctionService", () => {
   let service: AuctionService;
 
   beforeEach(() => {
-    service = new AuctionService(mockAuctionRepo as any, mockItemRepo as any, mockUserRepo as any);
+  service = new AuctionService(mockAuctionRepo as any, mockItemRepo as any, mockUserRepo as any);
     jest.clearAllMocks();
   });
 
@@ -57,10 +60,10 @@ describe("AuctionService", () => {
   // CREATE AUCTION
   // ========================
   it("createAuction debería crear una subasta correctamente", async () => {
-    const user = new MockUser("1", 5);
+    const user = new MockUser("1", 5, "user1");
     const item: Item = {
       id: "1",
-      userId: "1",
+      userId: "user1",
       name: "Espada legendaria",
       description: "Una espada épica",
       type: "Armas",
@@ -69,19 +72,19 @@ describe("AuctionService", () => {
     };
 
     const input: CreateAuctionInputDTO = {
-      userId: user.getId(),
+      userId: user.getId(), // ya no se usa internamente para validar owner, pero mantenido en DTO
       itemId: item.id,
       startingPrice: 100,
       durationHours: 24,
       buyNowPrice: 200,
     };
 
-    mockUserRepo.findByToken.mockResolvedValue(user);
-    mockItemRepo.findById.mockResolvedValue(item);
+  mockUserRepo.findByUsername.mockResolvedValue(user);
+  mockItemRepo.findById.mockResolvedValue(item);
     mockAuctionRepo.save.mockImplementation(a => Promise.resolve(a));
     mockItemRepo.updateAvailability.mockResolvedValue({});
 
-    const result = await service.createAuction(input, "token123");
+  const result = await service.createAuction(input, user.getUsername());
 
     expect(result).toHaveProperty("auction");
     expect(mockAuctionRepo.save).toHaveBeenCalled();
@@ -89,10 +92,10 @@ describe("AuctionService", () => {
   });
 
   it("createAuction debería fallar si créditos insuficientes", async () => {
-    const user = new MockUser("1", 0);
+    const user = new MockUser("1", 0, "user1");
     const item: Item = {
       id: "1",
-      userId: "1",
+      userId: "user1",
       name: "Item1",
       description: "Descripción",
       type: "Armas",
@@ -106,10 +109,10 @@ describe("AuctionService", () => {
       durationHours: 48,
     };
 
-    mockUserRepo.findByToken.mockResolvedValue(user);
-    mockItemRepo.findById.mockResolvedValue(item);
+  mockUserRepo.findByUsername.mockResolvedValue(user);
+  mockItemRepo.findById.mockResolvedValue(item);
 
-    await expect(service.createAuction(input, "token")).rejects.toThrow("Créditos insuficientes");
+  await expect(service.createAuction(input, user.getUsername())).rejects.toThrow("Créditos insuficientes");
   });
 
   // ========================
@@ -118,7 +121,7 @@ describe("AuctionService", () => {
   it("placeBid debería registrar una puja correctamente", async () => {
     const auctionItem: Item = {
       id: "1",
-      userId: "2",
+      userId: "seller", // creador
       name: "Item",
       description: "Descripción",
       type: "Armas",
@@ -140,12 +143,12 @@ describe("AuctionService", () => {
     };
     const auction = new Auction(auctionInput);
     mockAuctionRepo.findById.mockResolvedValue(auction);
-    const bidder = new MockUser("3", 50);
-    mockUserRepo.findByToken.mockResolvedValue(bidder);
+  const bidder = new MockUser("3", 50, "bidder");
+  mockUserRepo.findByUsername.mockResolvedValue(bidder);
     mockAuctionRepo.save.mockResolvedValue({});
     mockUserRepo.updateCredits.mockResolvedValue({});
 
-    const success = await service.placeBid("1", "token", 15);
+  const success = await service.placeBid("1", bidder.getUsername(), 15);
     expect(success).toBe(true);
     expect(mockAuctionRepo.save).toHaveBeenCalled();
   });
@@ -153,7 +156,7 @@ describe("AuctionService", () => {
   it("placeBid debería fallar si el creador puja su propia subasta", async () => {
     const auctionItem: Item = {
       id: "1",
-      userId: "2",
+      userId: "seller",
       name: "Item",
       description: "Descripción",
       type: "Armas",
@@ -175,10 +178,10 @@ describe("AuctionService", () => {
     };
     const auction = new Auction(auctionInput);
     mockAuctionRepo.findById.mockResolvedValue(auction);
-    const creator = new MockUser("2", 50);
-    mockUserRepo.findByToken.mockResolvedValue(creator);
+    const creator = new MockUser("2", 50, "seller");
+    mockUserRepo.findByUsername.mockResolvedValue(creator);
 
-    await expect(service.placeBid("1", "token", 15)).rejects.toThrow(
+    await expect(service.placeBid("1", creator.getUsername(), 15)).rejects.toThrow(
       "El creador no puede pujar en su propia subasta"
     );
   });
@@ -189,7 +192,7 @@ describe("AuctionService", () => {
   it("buyNow debería comprar correctamente", async () => {
     const auctionItem: Item = {
       id: "1",
-      userId: "2",
+      userId: "seller",
       name: "Item",
       description: "Descripción",
       type: "Armas",
@@ -211,15 +214,16 @@ describe("AuctionService", () => {
     };
     const auction = new Auction(auctionInput);
     mockAuctionRepo.findById.mockResolvedValue(auction);
-    const buyer = new MockUser("3", 50);
-    const seller = new MockUser("2", 5);
-    mockUserRepo.findByToken.mockResolvedValue(buyer);
-    mockUserRepo.findById.mockResolvedValue(seller);
+  const buyer = new MockUser("3", 50, "buyer");
+  const seller = new MockUser("2", 5, "seller");
+  mockUserRepo.findByUsername.mockResolvedValueOnce(buyer); // para buscar comprador
+  mockUserRepo.findByUsername.mockResolvedValueOnce(seller); // para buscar creador en finalize
     mockUserRepo.updateCredits.mockResolvedValue({});
     mockItemRepo.findById.mockResolvedValue(auctionItem);
     mockItemRepo.updateItem.mockResolvedValue({});
+  mockItemRepo.transferItem.mockResolvedValue({});
 
-    const success = await service.buyNow("1", "token");
+  const success = await service.buyNow("1", buyer.getUsername());
     expect(success).toBe(true);
     expect(mockAuctionRepo.save).toHaveBeenCalled();
   });
@@ -230,7 +234,7 @@ describe("AuctionService", () => {
   it("finalizeAuction debería cerrar la subasta y actualizar usuarios/items", async () => {
     const auctionItem: Item = {
       id: "1",
-      userId: "2",
+      userId: "seller",
       name: "Item",
       description: "Descripción",
       type: "Armas",
@@ -254,11 +258,12 @@ describe("AuctionService", () => {
     auction.getBids().push({ auctionId: "1", id: "1", userId: "3", amount: 15, createdAt: new Date() } as Bid);
 
     mockAuctionRepo.findById.mockResolvedValue(auction);
-    mockUserRepo.findById.mockResolvedValue(new MockUser("2", 5));
+    mockUserRepo.findByUsername.mockResolvedValue(new MockUser("2", 5, "seller"));
     mockItemRepo.findById.mockResolvedValue(auctionItem);
     mockUserRepo.updateCredits.mockResolvedValue({});
     mockItemRepo.updateItem.mockResolvedValue({});
     mockAuctionRepo.save.mockResolvedValue({});
+    mockItemRepo.transferItem.mockResolvedValue({});
 
     await service.finalizeAuction("1");
     expect(mockAuctionRepo.save).toHaveBeenCalled();
@@ -287,9 +292,9 @@ describe("AuctionService", () => {
   // GET CURRENT USER
   // ========================
   it("getCurrentUser debería retornar usuario actual", async () => {
-    const user = new MockUser("1", 10);
-    mockUserRepo.findByToken.mockResolvedValue(user);
-    const result = await service.getCurrentUser("token");
+    const user = new MockUser("1", 10, "user1");
+    mockUserRepo.findByUsername.mockResolvedValue(user);
+    const result = await service.getCurrentUser("user1");
     expect(result.getId()).toBe("1");
   });
 
