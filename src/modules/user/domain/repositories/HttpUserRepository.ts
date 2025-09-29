@@ -53,20 +53,39 @@ export class HttpUserRepository implements UserRepository {
     }
   }
 
-  async updateCredits(username: string, credits: number): Promise<User | null> {
+  async updateCredits(username: string, delta: number): Promise<User | null> {
+  console.log(`💰 Intentando actualizar créditos de ${username} con delta:`, delta);
+  console.log('🔗 URL:', `${this.baseUrl}/usuarios/${encodeURIComponent(username)}/creditos`);
   try {
     const res = await fetch(`${this.baseUrl}/usuarios/${encodeURIComponent(username)}/creditos`, {
-      method: "PUT",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ credits }),
+      body: JSON.stringify({ creditos: Number(delta) }), // 🔹 delta positivo o negativo
     });
-    if (!res.ok) return null;
+
+    if (!res.ok) {
+      console.error('❌ Falló la actualización de créditos, status:', res.status);
+      const text = await res.text();
+      console.error('❌ Respuesta backend:', text);
+      return null;
+    }
+
     const data = await res.json();
+    console.log('✅ Créditos actualizados:', data);
     return new User(data._id, data.nombreUsuario, data.creditos);
-  } catch {
+  } catch (err) {
+    console.error('❌ Error updating credits:', err);
     return null;
   }
 }
+
+
+
+
+
+
+
+
 
 
 }
