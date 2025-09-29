@@ -30,8 +30,9 @@ export class AuctionService implements IAuctionService {
     if (item.userId !== username) throw new Error("El item no pertenece al usuario");
     if (!item.isAvailable) throw new Error("El item no está disponible para subasta");
 
-    if (input.buyNowPrice !== undefined && input.buyNowPrice <= input.startingPrice && input.buyNowPrice !== 0)
-      throw new Error("El precio de compra rápida debe ser mayor al precio inicial");
+    if (input.buyNowPrice && input.buyNowPrice <= input.startingPrice)
+  throw new Error("El precio de compra rápida debe ser mayor al precio inicial");
+
 
     const creditCost = input.durationHours === 48 ? 3 : 1;
     if (user.getCredits() < creditCost) throw new Error("Créditos insuficientes");
@@ -47,7 +48,7 @@ export class AuctionService implements IAuctionService {
       startingPrice: input.startingPrice,
       currentPrice: input.startingPrice,
       item: { ...item, userId: username }, // 🔥 aquí guardamos username
-      buyNowPrice: input.buyNowPrice,
+      buyNowPrice: input.buyNowPrice ?? undefined,
       status: "OPEN" as AuctionStatus,
       createdAt: new Date(),
       bids: [] as Bid[],
