@@ -26,7 +26,8 @@ export default class NullAuction extends Auction {
       status: "UNKNOWN" as AuctionStatus,
       createdAt: new Date(),
       bids: [] as Bid[],
-      highestBidderId: "0"
+      highestBidderId: "0",
+      endsAt: new Date()
     });
     this.isNull = true;
   }

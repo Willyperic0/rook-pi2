@@ -15,6 +15,7 @@ export class Auction implements NullObject{
   private buyNowPrice: number | undefined;
   private status: AuctionStatus;
   private readonly createdAt: Date;
+  private readonly endsAt: Date;
   private bids: Bid[];
   private highestBidderId: string | undefined;
   isNull:boolean
@@ -28,6 +29,7 @@ export class Auction implements NullObject{
     this.buyNowPrice = AuctionInterface.buyNowPrice;
     this.status = AuctionInterface.status;
     this.createdAt = AuctionInterface.createdAt;
+    this.endsAt = AuctionInterface.endsAt;
     this.bids = AuctionInterface.bids;
     this.highestBidderId = AuctionInterface.highestBidderId;
     this.isNull = false
@@ -87,7 +89,7 @@ export class Auction implements NullObject{
   }
 
   getWinnerId(): string | undefined { return this.highestBidderId; }
-
+  getEndsAt(): Date { return this.endsAt; }
   getOwnerId(): string { return this.item.userId; }
 }
 export interface AuctionInterface {
@@ -100,6 +102,7 @@ export interface AuctionInterface {
     buyNowPrice: number | undefined
     status: AuctionStatus
     createdAt: Date
+    endsAt: Date
     bids: Bid[]
     highestBidderId: string | undefined
 }

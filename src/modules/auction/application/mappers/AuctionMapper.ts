@@ -4,8 +4,8 @@ import { AuctionDto } from "../dto/AuctionDto";
 import { ItemMapper } from "../../../inventory/application/mappers/ItemMapper";
 
 export class AuctionMapper {
-  static toDto(auction: Auction, durationHours: 24 | 48 = 24): AuctionDto {
-    const endsAt = new Date(auction.getCreatedAt().getTime() + durationHours * 60 * 60 * 1000);
+  static toDto(auction: Auction): AuctionDto {
+    const endsAt = auction.getEndsAt(); // 🔹 Usamos directamente el getter
     const lastBid = auction.getBids().at(-1);
 
     const base = {
@@ -48,4 +48,3 @@ export class AuctionMapper {
     };
   }
 }
-

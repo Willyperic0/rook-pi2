@@ -19,48 +19,66 @@ export class AuctionService implements IAuctionService {
 
   // Crear subasta usando username
   async createAuction(input: CreateAuctionInputDTO, username: string): Promise<CreateAuctionOutputDto> {
-    const user = await this.users.findByUsername!(username);
-    if (!user) throw new Error("Usuario no encontrado");
-    if (!input.itemType) throw new Error("Item type no proporcionado");
-    const item = await this.items.findById(username, input.itemId, input.itemType as any);
-    if (!item) throw new Error("Item not found");
+  const user = await this.users.findByUsername!(username);
+  if (!user) throw new Error("Usuario no encontrado");
+  if (!input.itemType) throw new Error("Item type no proporcionado");
 
-    if (!item) throw new Error("Item not found");
+  const item = await this.items.findById(username, input.itemId, input.itemType as any);
+  if (!item) throw new Error("Item not found");
 
-    if (item.userId !== username) throw new Error("El item no pertenece al usuario");
-    if (!item.isAvailable) throw new Error("El item no está disponible para subasta");
+  if (item.userId !== username) throw new Error("El item no pertenece al usuario");
+  if (!item.isAvailable) throw new Error("El item no está disponible para subasta");
 
-    if (input.buyNowPrice && input.buyNowPrice <= input.startingPrice)
-  throw new Error("El precio de compra rápida debe ser mayor al precio inicial");
+  if (input.buyNowPrice && input.buyNowPrice <= input.startingPrice)
+    throw new Error("El precio de compra rápida debe ser mayor al precio inicial");
+
+  const durationHours = Number(input.durationHours) || 24;
+  if (durationHours !== 24 && durationHours !== 48) {
+  throw new Error("durationHours debe ser 24 o 48");
+}
+  const startingPrice = Number(input.startingPrice);
+  const buyNowPrice = input.buyNowPrice ? Number(input.buyNowPrice) : undefined;
+
+  console.log("[CREATE AUCTION] durationHours:", durationHours);
+  console.log("[CREATE AUCTION] startingPrice:", startingPrice, "buyNowPrice:", buyNowPrice);
+
+  const creditCost = durationHours === 48 ? 3 : 1;
+  if (user.getCredits() < creditCost) throw new Error("Créditos insuficientes");
+  await this.users.updateCredits(user.getId(), user.getCredits() - creditCost);
+
+  item.isAvailable = false;
+  await this.items.updateAvailability(item.id, false, item.type);
+
+  const now = new Date();
+  const auctionInput = {
+    id: Date.now().toString(),
+    title: item.name,
+    description: item.description,
+    startingPrice,
+    currentPrice: startingPrice,
+    item: { ...item, userId: username },
+    buyNowPrice,
+    status: "OPEN" as AuctionStatus,
+    createdAt: now,
+    endsAt: new Date(now.getTime() + durationHours * 60 * 60 * 1000),
+    bids: [] as Bid[],
+    highestBidderId: undefined
+  };
+
+  const auction = new Auction(auctionInput);
+  await this.auctions.save(auction);
 
 
-    const creditCost = input.durationHours === 48 ? 3 : 1;
-    if (user.getCredits() < creditCost) throw new Error("Créditos insuficientes");
-    await this.users.updateCredits(user.getId(), user.getCredits() - creditCost);
 
-    item.isAvailable = false;
-    await this.items.updateAvailability(item.id, false, item.type);
+const auctionDto = AuctionMapper.toDto(auction);
 
-    const auctionInput = {
-      id: Date.now().toString(),
-      title: item.name,
-      description: item.description,
-      startingPrice: input.startingPrice,
-      currentPrice: input.startingPrice,
-      item: { ...item, userId: username }, // 🔥 aquí guardamos username
-      buyNowPrice: input.buyNowPrice ?? undefined,
-      status: "OPEN" as AuctionStatus,
-      createdAt: new Date(),
-      bids: [] as Bid[],
-      highestBidderId: undefined
-    };
 
-    const auction = new Auction(auctionInput);
-    await this.auctions.save(auction);
+  console.log("[CREATE AUCTION] Auction DTO:", auctionDto);
 
-    emitNewAuction(AuctionMapper.toDto(auction, input.durationHours));
-    return { auction: AuctionMapper.toDto(auction, input.durationHours) };
-  }
+  emitNewAuction(auctionDto);
+  return { auction: auctionDto };
+}
+
 
   // Pujar usando username
   async placeBid(auctionId: string, username: string, amount: number): Promise<boolean> {
