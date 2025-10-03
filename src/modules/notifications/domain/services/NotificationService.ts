@@ -3,10 +3,12 @@ import Notification, { NotificationStatus } from '../models/Notification';
 import { NotificationRepository } from '../repositories/NotificationRepository';
 import { INotificationService } from './INotificationService';
 
+export type NotificationHook = (notification: Notification) => Promise<void> | void;
+
 export class NotificationService implements INotificationService {
   constructor(
     private readonly repo: NotificationRepository,
-    private readonly emitter?: (event: string, payload: any) => void,
+    private readonly hooks: NotificationHook[] = [],
   ) {}
 
   async create(recipient: string, message: string): Promise<Notification> {
@@ -18,18 +20,29 @@ export class NotificationService implements INotificationService {
       createdAt: new Date(),
       updatedAt: new Date()
     });
+
     await this.repo.save(notification);
-    notification.markSent(); // envío inmediato (sin cola por ahora)
+
+    let firstError: unknown | null = null;
+    for (const hook of this.hooks) {
+      try {
+        await hook(notification);
+      } catch (error) {
+        if (!firstError) {
+          firstError = error;
+        }
+        console.error('[NotificationService] hook error', error);
+      }
+    }
+
+    if (firstError) {
+      notification.markFailed();
+    } else {
+      notification.markSent();
+    }
+
     await this.repo.save(notification);
-    // Emitir evento socket (si se configuró)
-    this.emitter?.('NOTIFICATION_CREATED', {
-      id: notification.id,
-      recipient: notification.recipient,
-      message: notification.message,
-      status: notification.status,
-      createdAt: notification.createdAt,
-      updatedAt: notification.updatedAt,
-    });
+
     return notification;
   }
 

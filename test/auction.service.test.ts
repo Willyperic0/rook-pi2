@@ -52,8 +52,14 @@ describe("AuctionService", () => {
   let service: AuctionService;
 
   beforeEach(() => {
-  service = new AuctionService(mockAuctionRepo as any, mockItemRepo as any, mockUserRepo as any);
+    jest.useFakeTimers();
+    service = new AuctionService(mockAuctionRepo as any, mockItemRepo as any, mockUserRepo as any);
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
   });
 
   // ========================
@@ -76,19 +82,20 @@ describe("AuctionService", () => {
       itemId: item.id,
       startingPrice: 100,
       durationHours: 24,
+      itemType: item.type,
       buyNowPrice: 200,
     };
 
-  mockUserRepo.findByUsername.mockResolvedValue(user);
-  mockItemRepo.findById.mockResolvedValue(item);
+    mockUserRepo.findByUsername.mockResolvedValue(user);
+    mockItemRepo.findById.mockResolvedValue(item);
     mockAuctionRepo.save.mockImplementation(a => Promise.resolve(a));
     mockItemRepo.updateAvailability.mockResolvedValue({});
 
-  const result = await service.createAuction(input, user.getUsername());
+    const result = await service.createAuction(input, user.getUsername());
 
     expect(result).toHaveProperty("auction");
     expect(mockAuctionRepo.save).toHaveBeenCalled();
-    expect(mockItemRepo.updateAvailability).toHaveBeenCalledWith(item.id, false);
+    expect(mockItemRepo.updateAvailability).toHaveBeenCalledWith(item.id, false, item.type);
   });
 
   it("createAuction debería fallar si créditos insuficientes", async () => {
@@ -107,12 +114,13 @@ describe("AuctionService", () => {
       itemId: item.id,
       startingPrice: 10,
       durationHours: 48,
+      itemType: item.type,
     };
 
-  mockUserRepo.findByUsername.mockResolvedValue(user);
-  mockItemRepo.findById.mockResolvedValue(item);
+    mockUserRepo.findByUsername.mockResolvedValue(user);
+    mockItemRepo.findById.mockResolvedValue(item);
 
-  await expect(service.createAuction(input, user.getUsername())).rejects.toThrow("Créditos insuficientes");
+    await expect(service.createAuction(input, user.getUsername())).rejects.toThrow("Créditos insuficientes");
   });
 
   // ========================
@@ -138,17 +146,18 @@ describe("AuctionService", () => {
       buyNowPrice: 20,
       status: "OPEN" as AuctionStatus,
       createdAt: new Date(),
+      endsAt: new Date(Date.now() + 60 * 60 * 1000),
       bids: [] as Bid[],
       highestBidderId: undefined
     };
     const auction = new Auction(auctionInput);
     mockAuctionRepo.findById.mockResolvedValue(auction);
-  const bidder = new MockUser("3", 50, "bidder");
-  mockUserRepo.findByUsername.mockResolvedValue(bidder);
+    const bidder = new MockUser("3", 50, "bidder");
+    mockUserRepo.findByUsername.mockResolvedValue(bidder);
     mockAuctionRepo.save.mockResolvedValue({});
     mockUserRepo.updateCredits.mockResolvedValue({});
 
-  const success = await service.placeBid("1", bidder.getUsername(), 15);
+    const success = await service.placeBid("1", bidder.getUsername(), 15);
     expect(success).toBe(true);
     expect(mockAuctionRepo.save).toHaveBeenCalled();
   });
@@ -173,13 +182,14 @@ describe("AuctionService", () => {
       buyNowPrice: 20,
       status: "OPEN" as AuctionStatus,
       createdAt: new Date(),
+      endsAt: new Date(Date.now() + 60 * 60 * 1000),
       bids: [] as Bid[],
       highestBidderId: undefined
     };
-    const auction = new Auction(auctionInput);
-    mockAuctionRepo.findById.mockResolvedValue(auction);
-    const creator = new MockUser("2", 50, "seller");
-    mockUserRepo.findByUsername.mockResolvedValue(creator);
+  const auction = new Auction(auctionInput);
+  mockAuctionRepo.findById.mockResolvedValue(auction);
+  const creator = new MockUser("2", 50, "seller");
+  mockUserRepo.findByUsername.mockResolvedValue(creator);
 
     await expect(service.placeBid("1", creator.getUsername(), 15)).rejects.toThrow(
       "El creador no puede pujar en su propia subasta"
@@ -209,21 +219,22 @@ describe("AuctionService", () => {
       buyNowPrice: 20,
       status: "OPEN" as AuctionStatus,
       createdAt: new Date(),
+      endsAt: new Date(Date.now() + 60 * 60 * 1000),
       bids: [] as Bid[],
       highestBidderId: undefined
     };
     const auction = new Auction(auctionInput);
     mockAuctionRepo.findById.mockResolvedValue(auction);
-  const buyer = new MockUser("3", 50, "buyer");
-  const seller = new MockUser("2", 5, "seller");
-  mockUserRepo.findByUsername.mockResolvedValueOnce(buyer); // para buscar comprador
-  mockUserRepo.findByUsername.mockResolvedValueOnce(seller); // para buscar creador en finalize
+    const buyer = new MockUser("3", 50, "buyer");
+    const seller = new MockUser("2", 5, "seller");
+    mockUserRepo.findByUsername.mockResolvedValueOnce(buyer); // para buscar comprador
+    mockUserRepo.findByUsername.mockResolvedValueOnce(seller); // para buscar creador en finalize
     mockUserRepo.updateCredits.mockResolvedValue({});
     mockItemRepo.findById.mockResolvedValue(auctionItem);
     mockItemRepo.updateItem.mockResolvedValue({});
-  mockItemRepo.transferItem.mockResolvedValue({});
+    mockItemRepo.transferItem.mockResolvedValue({});
 
-  const success = await service.buyNow("1", buyer.getUsername());
+    const success = await service.buyNow("1", buyer.getUsername());
     expect(success).toBe(true);
     expect(mockAuctionRepo.save).toHaveBeenCalled();
   });
@@ -251,6 +262,7 @@ describe("AuctionService", () => {
       buyNowPrice: 20,
       status: "OPEN" as AuctionStatus,
       createdAt: new Date(),
+      endsAt: new Date(Date.now() + 60 * 60 * 1000),
       bids: [] as Bid[],
       highestBidderId: undefined
     };

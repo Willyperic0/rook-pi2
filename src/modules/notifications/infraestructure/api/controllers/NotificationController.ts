@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { INotificationService } from '../../../domain/services/INotificationService';
 import { NotificationRepository } from '../../../domain/repositories/NotificationRepository';
 import { toNotificationDto } from '../../../application/mappers/toNotificationDTO';
+import { NotificationStatus } from '../../../domain/models/Notification';
 
 export class NotificationController {
   constructor(
@@ -14,8 +15,9 @@ export class NotificationController {
     if (!recipient || !message) {
       return res.status(400).json({ error: 'recipient and message are required' });
     }
-    const n = await this.service.create(recipient, message);
-    return res.status(201).json(toNotificationDto(n));
+  const n = await this.service.create(recipient, message);
+  const statusCode = n.status === NotificationStatus.SENT ? 201 : 202;
+  return res.status(statusCode).json(toNotificationDto(n));
   }
 
   async list(_req: Request, res: Response) {
