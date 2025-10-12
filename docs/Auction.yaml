@@ -1,11 +1,11 @@
 openapi: 3.0.0
 info:
   title: API Subastas
-  version: "1.0"
+  version: "1.1"
   description: Endpoints para crear, listar, pujar y comprar subastas, así como obtener el historial de subastas de usuarios.
 
 servers:
-  - url: http://nexusroot.bucaramanga.upb.edu.co/
+  - url: https://auction-deploy-272361825762.us-east1.run.app
     description: Servidor de producción
 
 paths:
@@ -18,16 +18,23 @@ paths:
           description: Lista de subastas abiertas
           content:
             application/json:
-              example:
-                data:
-                  - id: "1"
-                    name: "Subasta Espada Épica"
-                    description: "Una espada legendaria"
-                    startingPrice: 500
-                    currentPrice: 600
-                    itemId: "101"
-                    sellerId: "1"
-                    status: OPEN
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Auction"
+                example:
+                  data:
+                    - id: "1"
+                      name: "Subasta Espada Épica"
+                      description: "Una espada legendaria"
+                      startingPrice: 500
+                      currentPrice: 600
+                      itemId: "101"
+                      sellerId: "1"
+                      status: OPEN
         '500':
           description: Error interno
           content:
@@ -51,22 +58,28 @@ paths:
               buyNowPrice: 1000
               durationHours: 48
               itemId: "103"
+              username: "usuario1"
       responses:
         '201':
           description: Subasta creada
           content:
             application/json:
-              example:
-                auction:
-                  id: "3"
-                  name: "Subasta Mago de Fuego"
-                  description: "Entrenado en la magia elemental"
-                  startingPrice: 700
-                  currentPrice: 700
-                  buyNowPrice: 1000
-                  itemId: "103"
-                  sellerId: "2"
-                  status: OPEN
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Auction"
+                example:
+                  data:
+                    id: "3"
+                    name: "Subasta Mago de Fuego"
+                    description: "Entrenado en la magia elemental"
+                    startingPrice: 700
+                    currentPrice: 700
+                    buyNowPrice: 1000
+                    itemId: "103"
+                    sellerId: "2"
+                    status: OPEN
         '400':
           description: Error en la creación
           content:
@@ -100,6 +113,8 @@ paths:
           description: Subasta encontrada
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/Auction"
               example:
                 id: "1"
                 name: "Subasta Espada Épica"
@@ -141,17 +156,30 @@ paths:
               properties:
                 amount:
                   type: number
+                username:
+                  type: string
               required:
                 - amount
+                - username
             example:
               amount: 650
+              username: "usuario2"
       responses:
         '200':
           description: Puja realizada
           content:
             application/json:
-              example:
-                success: true
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                example:
+                  data:
+                    success: true
         '400':
           description: Error en la puja
           content:
@@ -168,7 +196,7 @@ paths:
                 insufficient_credits:
                   value: { error: "Créditos insuficientes" }
 
-  /auctions/{id}/buy:
+  /auctions/{id}/buynow:
     post:
       summary: Compra inmediata de una subasta
       parameters:
@@ -177,14 +205,28 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+              required:
+                - username
+            example:
+              username: "usuario2"
       responses:
         '200':
           description: Compra realizada
           content:
             application/json:
               example:
-                success: true
-                message: "Compra rápida realizada correctamente"
+                data:
+                  success: true
+                  message: "Compra rápida realizada correctamente"
         '400':
           description: No se pudo realizar la compra
           content:
@@ -203,12 +245,6 @@ paths:
             application/json:
               example:
                 error: "Auction not found"
-        '401':
-          description: Token no proporcionado
-          content:
-            application/json:
-              example:
-                error: "Token no proporcionado"
 
   /auctions/{id}/bids:
     get:
@@ -224,6 +260,10 @@ paths:
           description: Lista de pujas
           content:
             application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bid"
               example:
                 - id: "1"
                   auctionId: "1"
@@ -251,6 +291,13 @@ paths:
           description: Lista de subastas
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Auction"
               example:
                 data: []
         '401':
@@ -266,11 +313,11 @@ paths:
               example:
                 error: "Error inesperado"
 
-  /auctions/history/purchased/{userId}:
+  /auctions/history/purchased/{username}:
     get:
       summary: Subastas compradas por usuario
       parameters:
-        - name: userId
+        - name: username
           in: path
           required: true
           schema:
@@ -280,6 +327,13 @@ paths:
           description: Lista de subastas compradas
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Auction"
               example:
                 data:
                   - id: "3"
@@ -298,11 +352,11 @@ paths:
               example:
                 error: "Error inesperado"
 
-  /auctions/history/sold/{userId}:
+  /auctions/history/sold/{username}:
     get:
       summary: Subastas vendidas por usuario
       parameters:
-        - name: userId
+        - name: username
           in: path
           required: true
           schema:
@@ -312,6 +366,13 @@ paths:
           description: Lista de subastas vendidas
           content:
             application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Auction"
               example:
                 data:
                   - id: "1"

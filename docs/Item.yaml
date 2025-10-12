@@ -1,22 +1,39 @@
 openapi: 3.0.0
 info:
   title: API Items
-  version: "1.0"
-  description: Endpoints para listar y obtener items del inventario.
+  version: "1.1"
+  description: Endpoints para listar y obtener items del inventario por usuario.
 servers:
-  - url: http://nexusroot.bucaramanga.upb.edu.co/
+  - url: http://136.112.163.5:1882/
     description: Servidor de producción
 
 paths:
   /items:
     get:
-      summary: Listar todos los items
-      description: Obtiene todos los items disponibles en el sistema.
+      summary: Listar items por usuario
+      description: Obtiene todos los items disponibles de un usuario. Se puede filtrar por tipo.
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Nombre o identificador del usuario propietario
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Tipo de item (opcional, ejemplo: Armas, Armaduras, Héroes)
       responses:
         '200':
-          description: Lista de items
+          description: Lista de items del usuario
           content:
             application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
               example:
                 - id: 101
                   userId: 1
@@ -24,14 +41,7 @@ paths:
                   description: "Una espada legendaria"
                   type: "Armas"
                   isAvailable: true
-                  imagen: "data:image/png;base64,..." 
-                - id: 102
-                  userId: 1
-                  name: "Escudo de Hierro"
-                  description: "Resistente y robusto"
-                  type: "Armaduras"
-                  isAvailable: true
-                  imagen: "data:image/png;base64,..." 
+                  imagen: "https://example.com/images/espada.png"
                 - id: 103
                   userId: 2
                   name: "Mago de Fuego"
@@ -39,7 +49,13 @@ paths:
                   type: "Héroes"
                   heroType: "Mago Fuego"
                   isAvailable: true
-                  imagen: "data:image/png;base64,..." 
+                  imagen: "https://example.com/images/mago.png"
+        '400':
+          description: Username no proporcionado
+          content:
+            application/json:
+              example:
+                error: "username no proporcionado"
         '500':
           description: Error interno
           content:
@@ -50,6 +66,7 @@ paths:
   /items/{id}:
     get:
       summary: Obtener un item por ID
+      description: Obtiene un item específico de un usuario, con opción de filtrar por tipo.
       parameters:
         - name: id
           in: path
@@ -57,11 +74,25 @@ paths:
           schema:
             type: string
           description: ID del item a consultar
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Nombre o identificador del usuario propietario
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Tipo de item (opcional)
       responses:
         '200':
           description: Item encontrado
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
               example:
                 id: 101
                 userId: 1
@@ -69,7 +100,136 @@ paths:
                 description: "Una espada legendaria"
                 type: "Armas"
                 isAvailable: true
-                imagen: "data:image/png;base64,..." 
+                imagen: "https://example.com/images/espada.png"
+        '400':
+          description: Username o ID no proporcionado
+          content:
+            application/json:
+              example:
+                error: "username no proporcionado"
+        '404':
+          description: Item no encontrado
+          content:
+            application/json:
+              example:
+                error: "Item not found"
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+  /items/modify/{id}:
+    post:
+      summary: Actualiza un item completo
+      description: Modifica un item específico con los datos proporcionados.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del item a modificar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Item"
+            example:
+              name: "Espada Épica"
+              description: "Una espada legendaria mejorada"
+              type: "Armas"
+              heroType: "Guerrero"
+              isAvailable: true
+              imagen: "https://example.com/images/espada.png"
+      responses:
+        '200':
+          description: Item actualizado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+              example:
+                id: 101
+                userId: 1
+                name: "Espada Épica"
+                description: "Una espada legendaria mejorada"
+                type: "Armas"
+                heroType: "Guerrero"
+                isAvailable: true
+                imagen: "https://example.com/images/espada.png"
+        '400':
+          description: Datos incompletos o inválidos
+          content:
+            application/json:
+              example:
+                error: "isAvailable es requerido"
+        '404':
+          description: Item no encontrado
+          content:
+            application/json:
+              example:
+                error: "Item not found"
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
+  /items/{id}/status:
+    post:
+      summary: Actualiza la disponibilidad de un item
+      description: Cambia el estado de disponibilidad de un item según su tipo.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del item a actualizar
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Tipo de item (Armas, Armaduras, Héroes, Ítems, Habilidades especiales)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: boolean
+                  description: Nuevo estado de disponibilidad
+            example:
+              status: true
+      responses:
+        '200':
+          description: Disponibilidad actualizada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+              example:
+                id: 101
+                userId: 1
+                name: "Espada Épica"
+                description: "Una espada legendaria"
+                type: "Armas"
+                heroType: "Guerrero"
+                isAvailable: true
+                imagen: "https://example.com/images/espada.png"
+        '400':
+          description: ID o tipo inválido
+          content:
+            application/json:
+              example:
+                error: "Tipo no soportado o datos inválidos"
         '404':
           description: Item no encontrado
           content:
@@ -112,7 +272,7 @@ components:
           description: Indica si el item está disponible
         imagen:
           type: string
-          description: Imagen codificada en base64
+          description: URL o string de la imagen
       required:
         - id
         - userId

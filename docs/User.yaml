@@ -1,10 +1,10 @@
 openapi: 3.0.0
 info:
   title: API Users
-  version: "1.0"
-  description: Endpoints para gestionar usuarios, obtener información por ID o el usuario actual autenticado.
+  version: "1.1"
+  description: Endpoints para gestionar usuarios, obtener información por ID, el usuario actual autenticado y actualizar créditos.
 servers:
-  - url: http://nexusroot.bucaramanga.upb.edu.co/
+  - url: http://136.112.163.5:1882/
     description: Servidor de producción
 
 paths:
@@ -24,6 +24,8 @@ paths:
           description: Usuario encontrado
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/User"
               example:
                 id: "5"
                 username: "Juan"
@@ -33,7 +35,7 @@ paths:
           content:
             application/json:
               example:
-                error: "User ID must be a number"
+                error: "User ID is required"
         '404':
           description: Usuario no encontrado
           content:
@@ -56,6 +58,8 @@ paths:
           description: Datos del usuario actual
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/User"
               example:
                 id: "5"
                 username: "Juan"
@@ -79,6 +83,57 @@ paths:
               example:
                 error: "Error inesperado"
 
+  /users/{nombreUsuario}/creditos:
+    post:
+      summary: Actualizar créditos de un usuario
+      description: Permite modificar los créditos de un usuario específico por su nombre de usuario.
+      parameters:
+        - name: nombreUsuario
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Nombre de usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                creditos:
+                  type: number
+                  description: Nueva cantidad de créditos
+              required:
+                - creditos
+            example:
+              creditos: 500
+      responses:
+        '200':
+          description: Créditos actualizados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        '400':
+          description: Datos incompletos o inválidos
+          content:
+            application/json:
+              example:
+                error: "Nombre de usuario o créditos no proporcionados"
+        '404':
+          description: Usuario no encontrado o no actualizado
+          content:
+            application/json:
+              example:
+                error: "Usuario no encontrado o no se pudo actualizar"
+        '500':
+          description: Error interno
+          content:
+            application/json:
+              example:
+                error: "Error inesperado"
+
 components:
   schemas:
     User:
@@ -94,6 +149,9 @@ components:
         email:
           type: string
           description: Correo electrónico del usuario
+        creditos:
+          type: number
+          description: Créditos actuales del usuario
       required:
         - id
         - username

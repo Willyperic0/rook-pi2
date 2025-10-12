@@ -2,9 +2,22 @@ import { Request, Response } from "express";
 import { IAuctionService } from "../../../domain/services/IAuctionService";
 import { AuctionMapper } from "../../../application/mappers/AuctionMapper";
 
+/**
+ * Controlador encargado de gestionar las operaciones HTTP relacionadas con las subastas.
+ * Interactúa con el servicio de dominio (`IAuctionService`) y traduce las respuestas a formato HTTP.
+ */
 export class AuctionController {
+  /**
+   * @param auctionService Servicio de dominio encargado de la lógica de subastas.
+   */
   constructor(private readonly auctionService: IAuctionService) {}
 
+  /**
+   * Crea una nueva subasta usando los datos enviados en la solicitud.
+   * @route POST /auctions
+   * @param req Cuerpo de la solicitud con la información de la subasta y el username del vendedor.
+   * @param res Respuesta HTTP con la subasta creada o error.
+   */
   createAuction = async (req: Request, res: Response) => {
     try {
       const username = req.body.username?.trim();
@@ -17,6 +30,10 @@ export class AuctionController {
     }
   };
 
+  /**
+   * Obtiene una subasta por su ID.
+   * @route GET /auctions/:id
+   */
   getAuction = async (req: Request, res: Response): Promise<Response> => {
     try {
       const auctionId = req.params["id"];
@@ -31,6 +48,10 @@ export class AuctionController {
     }
   };
 
+  /**
+   * Lista todas las subastas actualmente abiertas.
+   * @route GET /auctions
+   */
   listAuctions = async (_: Request, res: Response): Promise<Response> => {
     try {
       const auctions = await this.auctionService.listOpenAuctions() || [];
@@ -40,6 +61,10 @@ export class AuctionController {
     }
   };
 
+  /**
+   * Permite a un usuario realizar una puja en una subasta específica.
+   * @route POST /auctions/:id/bid
+   */
   placeBid = async (req: Request, res: Response): Promise<Response> => {
     try {
       const username = req.body.username?.trim();
@@ -58,6 +83,10 @@ export class AuctionController {
     }
   };
 
+  /**
+   * Permite a un usuario realizar la compra rápida (“Buy Now”) de una subasta activa.
+   * @route POST /auctions/:id/buynow
+   */
   buyNow = async (req: Request, res: Response) => {
     try {
       const username = req.body.username?.trim();
@@ -77,6 +106,10 @@ export class AuctionController {
     }
   };
 
+  /**
+   * Devuelve todas las pujas realizadas en una subasta específica.
+   * @route GET /auctions/:id/bids
+   */
   getBids = async (req: Request, res: Response) => {
     try {
       const auctionId = req.params["id"];
@@ -91,7 +124,11 @@ export class AuctionController {
     }
   };
 
-getPurchasedHistory = async (req: Request, res: Response): Promise<void> => {
+  /**
+   * Obtiene el historial de subastas compradas por un usuario.
+   * @route GET /auctions/history/purchased/:username
+   */
+  getPurchasedHistory = async (req: Request, res: Response): Promise<void> => {
     try {
       const { username } = req.params;
       if (!username) {
@@ -107,6 +144,10 @@ getPurchasedHistory = async (req: Request, res: Response): Promise<void> => {
     }
   };
 
+  /**
+   * Obtiene el historial de subastas vendidas por un usuario.
+   * @route GET /auctions/history/sold/:username
+   */
   getSoldHistory = async (req: Request, res: Response): Promise<void> => {
     try {
       const { username } = req.params;
@@ -123,10 +164,10 @@ getPurchasedHistory = async (req: Request, res: Response): Promise<void> => {
     }
   };
 
-
-
-
-
+  /**
+   * Obtiene la información del usuario actual según su username.
+   * @route POST /auctions/user
+   */
   getCurrentUser = async (req: Request, res: Response): Promise<Response> => {
     try {
       const username = req.body.username?.trim();
@@ -141,5 +182,3 @@ getPurchasedHistory = async (req: Request, res: Response): Promise<void> => {
     }
   };
 }
-
-
